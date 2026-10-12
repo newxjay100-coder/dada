@@ -86,7 +86,7 @@ function ScrollToTop() {
  */
 const StoreLayout: React.FC = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-white text-neutral-900 font-sans selection:bg-[#721b29] selection:text-white">
+    <div className="flex flex-col min-h-screen bg-[#07070e] text-[#e2e2ee] font-sans selection:bg-[#00f0ff] selection:text-black">
       <Header />
       <main className="flex-1 pb-16 md:pb-0">
         <Outlet />
@@ -134,11 +134,15 @@ export function App() {
                   <Route path="/order-success/:orderNumber" element={<OrderSuccessPage />} />
                   <Route path="/order-success" element={<OrderSuccessPage />} />
 
-                  {/* Authentication */}
+                  {/* Authentication (Both /login, /register and /auth/* routes supported) */}
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
                   <Route path="/auth/login" element={<LoginPage />} />
                   <Route path="/auth/register" element={<RegisterPage />} />
                   <Route path="/auth/forgot-id" element={<ForgotIdPage />} />
                   <Route path="/auth/forgot-password" element={<ForgotIdPage />} />
+                  <Route path="/forgot-id" element={<ForgotIdPage />} />
+                  <Route path="/forgot-password" element={<ForgotIdPage />} />
 
                   {/* Customer MyPage (10+ sub-functions) */}
                   <Route path="/mypage" element={<MyPageLayout />}>
