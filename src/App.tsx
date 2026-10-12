@@ -47,9 +47,9 @@ import { BrandListPage } from '@/pages/special/BrandListPage';
 import { EventListPage, MagazineListPage } from '@/pages/special/EventListPage';
 import { ReviewsPage } from '@/pages/special/ReviewsPage';
 
-// Customer Center & Community Boards
 import { CustomerCenterPage } from '@/pages/customer/CustomerCenterPage';
 import { NoticePage, FaqPage } from '@/pages/customer/NoticePage';
+import { TermsPage } from '@/pages/customer/TermsPage';
 import { QnaBoardPage } from '@/pages/boards/QnaBoardPage';
 import { FreeBoardPage } from '@/pages/boards/FreeBoardPage';
 import { ReservationBoardPage } from '@/pages/boards/ReservationBoardPage';
@@ -168,6 +168,10 @@ export function App() {
                   <Route path="/boards/free" element={<FreeBoardPage />} />
                   <Route path="/boards/reservations" element={<ReservationBoardPage />} />
                   <Route path="/boards/reservation" element={<ReservationBoardPage />} />
+
+                  {/* Policy & Terms */}
+                  <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/privacy" element={<TermsPage />} />
                 </Route>
 
                 {/* 2. Admin ERP Backoffice Routes */}
