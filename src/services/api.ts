@@ -27,6 +27,16 @@ import {
   PurchaseOrder,
   Shipment,
   TaxDocument,
+  CartItemRecord,
+  WishlistRecord,
+  SearchLog,
+  PopularKeyword,
+  RoleAuditLog,
+  AuthLog,
+  Inquiry,
+  UserAddress,
+  Notice,
+  FAQ,
 } from '@/types/database.types';
 import { uploadStaticImageToStorage } from './imageUploadService';
 
@@ -896,6 +906,365 @@ export const api = {
       pulledCounts: counts,
       errors,
     };
+  },
+
+  // ==========================================
+  // 13. CART ITEMS (장바구니 관리 - Supabase 연동)
+  // ==========================================
+  async getCartItems(userId: string): Promise<CartItemRecord[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('cart_items')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+        if (!error && data) return data as CartItemRecord[];
+      } catch (e) {
+        console.warn('Supabase getCartItems failed:', e);
+      }
+    }
+    try {
+      const stored = localStorage.getItem('dassoba_cart_items');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.map((item: any) => ({
+          id: item.id,
+          user_id: userId,
+          product_id: item.product?.id || '',
+          variant_id: item.variant?.id || '',
+          quantity: item.quantity || 1,
+          is_selected: item.isSelected ?? true,
+        }));
+      }
+    } catch {}
+    return [];
+  },
+
+  async saveCartItem(item: CartItemRecord): Promise<CartItemRecord> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('cart_items').upsert(item);
+        if (error) console.warn('Supabase saveCartItem error:', error);
+      } catch (e) {
+        console.warn('Supabase saveCartItem failed:', e);
+      }
+    }
+    return item;
+  },
+
+  async removeCartItem(itemId: string): Promise<boolean> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('cart_items').delete().eq('id', itemId);
+        if (error) console.warn('Supabase removeCartItem error:', error);
+      } catch (e) {
+        console.warn('Supabase removeCartItem failed:', e);
+      }
+    }
+    return true;
+  },
+
+  async clearCartItems(userId: string): Promise<boolean> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('cart_items').delete().eq('user_id', userId);
+        if (error) console.warn('Supabase clearCartItems error:', error);
+      } catch (e) {
+        console.warn('Supabase clearCartItems failed:', e);
+      }
+    }
+    return true;
+  },
+
+  // ==========================================
+  // 14. WISHLIST (찜하기 / 하트 위시리스트 - Supabase 연동)
+  // ==========================================
+  async getWishlist(userId: string): Promise<string[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('wishlists')
+          .select('product_id')
+          .eq('user_id', userId);
+        if (!error && data && data.length > 0) {
+          return data.map((d) => d.product_id);
+        }
+      } catch (e) {
+        console.warn('Supabase getWishlist error:', e);
+      }
+    }
+    try {
+      const saved = localStorage.getItem('dassoba_wishlist_ids');
+      return saved ? JSON.parse(saved) : ['prod-01', 'prod-05', 'prod-09'];
+    } catch {
+      return ['prod-01', 'prod-05', 'prod-09'];
+    }
+  },
+
+  async addToWishlist(userId: string, productId: string): Promise<boolean> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('wishlists').upsert({
+          id: `${userId}-${productId}`,
+          user_id: userId,
+          product_id: productId,
+        });
+        if (error) console.warn('Supabase addToWishlist error:', error);
+      } catch (e) {
+        console.warn('Supabase addToWishlist exception:', e);
+      }
+    }
+    return true;
+  },
+
+  async removeFromWishlist(userId: string, productId: string): Promise<boolean> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('wishlists')
+          .delete()
+          .eq('user_id', userId)
+          .eq('product_id', productId);
+        if (error) console.warn('Supabase removeFromWishlist error:', error);
+      } catch (e) {
+        console.warn('Supabase removeFromWishlist exception:', e);
+      }
+    }
+    return true;
+  },
+
+  // ==========================================
+  // 15. SEARCH LOGS & KEYWORDS (실시간 검색 로그 및 인기 키워드)
+  // ==========================================
+  async logSearchQuery(
+    query: string,
+    userId?: string,
+    source: 'header' | 'modal' | 'mobile' = 'header'
+  ): Promise<void> {
+    const cleanQuery = query.trim();
+    if (!cleanQuery) return;
+
+    if (isSupabaseConfigured) {
+      try {
+        // 1. Insert into search_logs
+        await supabase.from('search_logs').insert({
+          id: `sl-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          user_id: userId || null,
+          query: cleanQuery,
+          source,
+        });
+
+        // 2. Increment search_count in popular_keywords
+        const { data: existing } = await supabase
+          .from('popular_keywords')
+          .select('*')
+          .eq('keyword', cleanQuery)
+          .maybeSingle();
+
+        if (existing) {
+          await supabase
+            .from('popular_keywords')
+            .update({
+              search_count: (existing.search_count || 1) + 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existing.id);
+        } else {
+          await supabase.from('popular_keywords').insert({
+            id: `pk-${Date.now()}`,
+            keyword: cleanQuery,
+            search_count: 1,
+          });
+        }
+      } catch (e) {
+        console.warn('Supabase logSearchQuery exception:', e);
+      }
+    }
+  },
+
+  async getPopularKeywords(): Promise<string[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('popular_keywords')
+          .select('keyword')
+          .order('search_count', { ascending: false })
+          .limit(10);
+        if (!error && data && data.length > 0) {
+          return data.map((d) => d.keyword);
+        }
+      } catch (e) {
+        console.warn('Supabase getPopularKeywords exception:', e);
+      }
+    }
+    return [
+      '테크웨어',
+      '네온 카고',
+      '1+1 특가',
+      '사이버 스트릿',
+      '고딕 드레스',
+      '오버핏 자켓',
+      '컴뱃 부츠',
+      '메탈릭 파카',
+    ];
+  },
+
+  // ==========================================
+  // 16. INQUIRIES (1:1 고객센터 상담)
+  // ==========================================
+  async getInquiries(userId?: string): Promise<Inquiry[]> {
+    if (isSupabaseConfigured) {
+      try {
+        let q = supabase.from('inquiries').select('*').order('created_at', { ascending: false });
+        if (userId) q = q.eq('user_id', userId);
+        const { data, error } = await q;
+        if (!error && data && data.length > 0) return data as Inquiry[];
+      } catch (e) {
+        console.warn('Supabase getInquiries exception:', e);
+      }
+    }
+    return [
+      {
+        id: 'inq-01',
+        user_id: userId || 'u-vip',
+        category: 'shipping',
+        title: '배송지 변경 요청 드립니다.',
+        content: '주문한 코트 출고 전인데 배송지 호수를 1502호에서 1503호로 변경 가능한가요?',
+        status: 'answered',
+        admin_reply:
+          '안녕하세요 고객님! 출고 전 확인되어 1503호로 안전하게 변경 접수되었습니다. 감사합니다.',
+        created_at: '2026-10-04T11:00:00Z',
+      },
+    ];
+  },
+
+  async createInquiry(inquiry: Inquiry): Promise<Inquiry> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('inquiries').insert(inquiry);
+        if (error) console.warn('Supabase createInquiry error:', error);
+      } catch (e) {
+        console.warn('Supabase createInquiry exception:', e);
+      }
+    }
+    return inquiry;
+  },
+
+  // ==========================================
+  // 17. USER ADDRESSES (배송지 관리)
+  // ==========================================
+  async getUserAddresses(userId: string): Promise<UserAddress[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('user_addresses')
+          .select('*')
+          .eq('user_id', userId)
+          .order('is_default', { ascending: false });
+        if (!error && data && data.length > 0) return data as UserAddress[];
+      } catch (e) {
+        console.warn('Supabase getUserAddresses exception:', e);
+      }
+    }
+    return [
+      {
+        id: 'addr-01',
+        user_id: userId,
+        address_name: '자택 (기본배송지)',
+        recipient_name: '백재용',
+        recipient_phone: '010-9876-5432',
+        postal_code: '04399',
+        address_line1: '서울시 용산구 한남대로 91',
+        address_line2: '102동 1502호',
+        is_default: true,
+        delivery_memo: '부재 시 문 앞에 놓아주세요.',
+      },
+      {
+        id: 'addr-02',
+        user_id: userId,
+        address_name: '스튜디오',
+        recipient_name: '백재용',
+        recipient_phone: '010-9876-5432',
+        postal_code: '06134',
+        address_line1: '서울시 강남구 테헤란로 152',
+        address_line2: '12층 디자인랩',
+        is_default: false,
+        delivery_memo: '경비실에 맡겨주세요.',
+      },
+    ];
+  },
+
+  async saveUserAddress(address: UserAddress): Promise<UserAddress> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('user_addresses').upsert(address);
+        if (error) console.warn('Supabase saveUserAddress error:', error);
+      } catch (e) {
+        console.warn('Supabase saveUserAddress exception:', e);
+      }
+    }
+    return address;
+  },
+
+  async deleteUserAddress(id: string): Promise<boolean> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('user_addresses').delete().eq('id', id);
+        if (error) console.warn('Supabase deleteUserAddress error:', error);
+      } catch (e) {
+        console.warn('Supabase deleteUserAddress exception:', e);
+      }
+    }
+    return true;
+  },
+
+  // ==========================================
+  // 18. ROLE & AUTH AUDITING (역할 전환 및 로그인 로그)
+  // ==========================================
+  async logRoleSwitch(userId: string, prevRole: string, newRole: string): Promise<void> {
+    if (isSupabaseConfigured) {
+      try {
+        // 1. Update profiles.role
+        await supabase
+          .from('profiles')
+          .update({ role: newRole, updated_at: new Date().toISOString() })
+          .eq('id', userId);
+
+        // 2. Insert into role_audit_logs
+        await supabase.from('role_audit_logs').insert({
+          id: `ral-${Date.now()}`,
+          user_id: userId,
+          previous_role: prevRole,
+          new_role: newRole,
+          changed_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn('Supabase logRoleSwitch exception:', e);
+      }
+    }
+  },
+
+  async logAuthEvent(
+    userId: string,
+    email: string,
+    eventType: 'LOGIN' | 'LOGOUT' | 'SIGNUP' | 'ROLE_SWITCH',
+    details?: string
+  ): Promise<void> {
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('auth_logs').insert({
+          id: `al-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          user_id: userId,
+          email,
+          event_type: eventType,
+          details: details || '',
+          created_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn('Supabase logAuthEvent exception:', e);
+      }
+    }
   },
 };
 

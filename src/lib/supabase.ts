@@ -124,6 +124,28 @@ export async function testSupabaseConnection(): Promise<{
     const { error: ordErr } = await currentClient.from('orders').select('id').limit(1);
     tables['orders'] = !ordErr;
 
+    // 4. Check header features tables
+    const { error: cartErr } = await currentClient.from('cart_items').select('id').limit(1);
+    tables['cart_items'] = !cartErr;
+
+    const { error: wishErr } = await currentClient.from('wishlists').select('id').limit(1);
+    tables['wishlists'] = !wishErr;
+
+    const { error: searchErr } = await currentClient.from('search_logs').select('id').limit(1);
+    tables['search_logs'] = !searchErr;
+
+    const { error: inqErr } = await currentClient.from('inquiries').select('id').limit(1);
+    tables['inquiries'] = !inqErr;
+
+    const { error: addrErr } = await currentClient.from('user_addresses').select('id').limit(1);
+    tables['user_addresses'] = !addrErr;
+
+    const { error: roleLogErr } = await currentClient.from('role_audit_logs').select('id').limit(1);
+    tables['role_audit_logs'] = !roleLogErr;
+
+    const { error: authLogErr } = await currentClient.from('auth_logs').select('id').limit(1);
+    tables['auth_logs'] = !authLogErr;
+
     const latencyMs = Date.now() - startTime;
     const anyTableOk = Object.values(tables).some(Boolean);
 

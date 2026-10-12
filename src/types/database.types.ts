@@ -439,3 +439,74 @@ export interface TaxDocument {
   issue_date?: string;
   created_at: string;
 }
+
+// 43. Header Features & User Experience Tables
+export interface CartItemRecord {
+  id: string;
+  user_id: string;
+  product_id: string;
+  variant_id: string;
+  quantity: number;
+  is_selected: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface WishlistRecord {
+  id: string;
+  user_id: string;
+  product_id: string;
+  created_at?: string;
+}
+
+export interface SearchLog {
+  id: string;
+  user_id?: string | null;
+  query: string;
+  results_count?: number;
+  source?: 'header' | 'modal' | 'mobile';
+  created_at?: string;
+}
+
+export interface PopularKeyword {
+  id: string;
+  keyword: string;
+  search_count: number;
+  updated_at?: string;
+}
+
+export interface RoleAuditLog {
+  id: string;
+  user_id: string;
+  previous_role: string;
+  new_role: string;
+  changed_at?: string;
+}
+
+export interface AuthLog {
+  id: string;
+  user_id: string;
+  email: string;
+  event_type: 'LOGIN' | 'LOGOUT' | 'SIGNUP' | 'ROLE_SWITCH';
+  details?: string;
+  created_at?: string;
+}
+
+export interface Notice {
+  id: string;
+  title: string;
+  content: string;
+  is_pinned: boolean;
+  view_count: number;
+  created_at?: string;
+}
+
+export interface FAQ {
+  id: string;
+  category: string;
+  question: string;
+  answer: string;
+  display_order: number;
+  created_at?: string;
+}
+

@@ -7,6 +7,7 @@ import {
   MockAuthStore,
 } from '@/mock/mockStorage';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { api } from '@/services/api';
 
 export interface SignupInput {
   login_id: string;
@@ -102,6 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (prof) {
               setUser(prof as Profile);
               MockProfileStore.setCurrentUser(prof as Profile);
+              api.logAuthEvent(prof.id, prof.email, 'LOGIN', 'Supabase Auth 로그인');
               setIsLoading(false);
               return { success: true };
             }
@@ -129,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setUser(matched);
         MockProfileStore.setCurrentUser(matched);
+        api.logAuthEvent(matched.id, matched.email, 'LOGIN', '아이디/비밀번호 로그인');
         setIsLoading(false);
         return { success: true };
       }
@@ -150,6 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(adminProf);
         MockProfileStore.setCurrentUser(adminProf);
+        api.logAuthEvent(adminProf.id, adminProf.email, 'LOGIN', '관리자 마스터 로그인');
         setIsLoading(false);
         return { success: true };
       }
@@ -267,6 +271,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       MockProfileStore.updateProfile(newProfile);
       MockProfileStore.setCurrentUser(newProfile);
       setUser(newProfile);
+      api.logAuthEvent(newProfile.id, newProfile.email, 'SIGNUP', `신규 회원가입 (${newProfile.role})`);
       setIsLoading(false);
       return { success: true };
     } catch (err: any) {
@@ -276,6 +281,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    if (user) {
+      api.logAuthEvent(user.id, user.email, 'LOGOUT', '정상 로그아웃');
+    }
     if (isSupabaseConfigured) {
       supabase.auth.signOut().catch(() => null);
     }
@@ -287,8 +295,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const profiles = MockProfileStore.getAll();
     const target = profiles.find((p) => p.role === targetRole);
     if (target) {
+      const prevRole = user?.role || 'customer';
       setUser(target);
       MockProfileStore.setCurrentUser(target);
+      api.logRoleSwitch(target.id, prevRole, targetRole);
+      api.logAuthEvent(target.id, target.email, 'ROLE_SWITCH', `역할 전환: ${prevRole} -> ${targetRole}`);
     }
   };
 
@@ -297,6 +308,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const merged = { ...user, ...updated };
     setUser(merged);
     MockProfileStore.updateProfile(merged);
+    await api.saveProfile(merged);
   };
 
   const isLoggedIn = user !== null;

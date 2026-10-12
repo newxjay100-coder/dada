@@ -17,6 +17,7 @@ import { MegaMenu } from './MegaMenu';
 import { MobileCategoryDrawer } from './MobileCategoryDrawer';
 import { SearchModal } from '../common/SearchModal';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { api } from '@/services/api';
 
 export const Header: React.FC = () => {
   const { user, isLoggedIn, isAdmin, logout, switchUserRole } = useAuth();
@@ -32,7 +33,9 @@ export const Header: React.FC = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-    navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    const query = searchQuery.trim();
+    api.logSearchQuery(query, user?.id, 'header');
+    navigate(`/search?q=${encodeURIComponent(query)}`);
   };
 
   const navCategories = [

@@ -150,11 +150,12 @@ export const AdminSupabaseCenterPage: React.FC = () => {
   };
 
   const sampleSql = `-- ==========================================
--- DASSOBA (다써바) Full Enterprise ERP Schema
+-- DASSOBA (다써바) Full Enterprise Cloud Schema
+-- Header Features (8 Areas) + ERP Core
 -- Copy and paste this into Supabase Dashboard > SQL Editor
 -- ==========================================
 
--- 1. Profiles & Members
+-- 1. Profiles & Roles (ROLE 전환 & 회원 정보)
 CREATE TABLE IF NOT EXISTS public.profiles (
   id TEXT PRIMARY KEY,
   login_id TEXT UNIQUE,
@@ -163,12 +164,161 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   phone TEXT,
   member_grade TEXT DEFAULT 'BRONZE',
   role TEXT DEFAULT 'customer',
-  points_balance INT DEFAULT 0,
+  points_balance INT DEFAULT 5000,
   status TEXT DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Role Switch Auditing
+CREATE TABLE IF NOT EXISTS public.role_audit_logs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  previous_role TEXT NOT NULL,
+  new_role TEXT NOT NULL,
+  changed_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Auth Sign In / Out Auditing
+CREATE TABLE IF NOT EXISTS public.auth_logs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  email TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  details TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 2. Products & Variants
+-- 2. Member Grades & Point Ledger (회원 등급 & 적립금)
+CREATE TABLE IF NOT EXISTS public.member_grades (
+  id TEXT PRIMARY KEY,
+  grade_code TEXT UNIQUE NOT NULL,
+  grade_name TEXT NOT NULL,
+  min_spent INT DEFAULT 0,
+  discount_rate NUMERIC DEFAULT 0,
+  point_rate NUMERIC DEFAULT 1.0,
+  benefits JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.point_transactions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  transaction_type TEXT NOT NULL,
+  amount INT NOT NULL,
+  balance_after INT NOT NULL,
+  description TEXT NOT NULL,
+  reference_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 3. Shopping Cart (장바구니 뱃지 (3))
+CREATE TABLE IF NOT EXISTS public.cart_items (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  product_id TEXT NOT NULL,
+  variant_id TEXT NOT NULL,
+  quantity INT NOT NULL DEFAULT 1,
+  is_selected BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 4. Wishlist (하트 찜하기 뱃지 3)
+CREATE TABLE IF NOT EXISTS public.wishlists (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  product_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  CONSTRAINT uq_wishlist_user_product UNIQUE (user_id, product_id)
+);
+
+-- 5. Search Bar & Trends (검색창 로그 & 인기 키워드)
+CREATE TABLE IF NOT EXISTS public.search_logs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  query TEXT NOT NULL,
+  results_count INT DEFAULT 0,
+  source TEXT DEFAULT 'header',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.popular_keywords (
+  id TEXT PRIMARY KEY,
+  keyword TEXT UNIQUE NOT NULL,
+  search_count INT DEFAULT 1,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 6. Customer Support Center (고객센터 1:1 문의, FAQ, 공지사항)
+CREATE TABLE IF NOT EXISTS public.inquiries (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  category TEXT NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  status TEXT DEFAULT 'submitted',
+  admin_reply TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.notices (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  is_pinned BOOLEAN DEFAULT false,
+  view_count INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.faqs (
+  id TEXT PRIMARY KEY,
+  category TEXT NOT NULL,
+  question TEXT NOT NULL,
+  answer TEXT NOT NULL,
+  display_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 7. MyPage Delivery Addresses & Coupons (배송지 & 쿠폰)
+CREATE TABLE IF NOT EXISTS public.user_addresses (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  address_name TEXT NOT NULL DEFAULT '기본배송지',
+  recipient_name TEXT NOT NULL,
+  recipient_phone TEXT NOT NULL,
+  postal_code TEXT NOT NULL,
+  address_line1 TEXT NOT NULL,
+  address_line2 TEXT,
+  is_default BOOLEAN DEFAULT false,
+  delivery_memo TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.coupons (
+  id TEXT PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  discount_type TEXT NOT NULL,
+  discount_value NUMERIC NOT NULL,
+  min_order_amount INT DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.user_coupons (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  coupon_id TEXT NOT NULL,
+  is_used BOOLEAN DEFAULT false,
+  used_at TIMESTAMPTZ,
+  issued_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
+-- 8. Products & Variants (상품)
 CREATE TABLE IF NOT EXISTS public.products (
   id TEXT PRIMARY KEY,
   sku TEXT UNIQUE,
@@ -204,7 +354,7 @@ CREATE TABLE IF NOT EXISTS public.product_variants (
   status TEXT DEFAULT 'active'
 );
 
--- 3. Events & Hero Banners
+-- 9. Events & Hero Banners (기획전)
 CREATE TABLE IF NOT EXISTS public.events (
   id TEXT PRIMARY KEY,
   slug TEXT UNIQUE,
@@ -220,7 +370,7 @@ CREATE TABLE IF NOT EXISTS public.events (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 4. Orders & Order Items
+-- 10. Orders & Order Items (주문/배송)
 CREATE TABLE IF NOT EXISTS public.orders (
   id TEXT PRIMARY KEY,
   order_number TEXT UNIQUE,
@@ -262,7 +412,7 @@ CREATE TABLE IF NOT EXISTS public.order_items (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 5. Deliveries (Logistics)
+-- 11. Logistics & Deliveries (배송 관리)
 CREATE TABLE IF NOT EXISTS public.deliveries (
   id TEXT PRIMARY KEY,
   order_id TEXT,
@@ -275,7 +425,7 @@ CREATE TABLE IF NOT EXISTS public.deliveries (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 6. Raw Materials (원부자재)
+-- 12. Materials & Purchase Orders (원부자재/발주)
 CREATE TABLE IF NOT EXISTS public.materials (
   id TEXT PRIMARY KEY,
   material_code TEXT UNIQUE,
@@ -290,7 +440,6 @@ CREATE TABLE IF NOT EXISTS public.materials (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 7. Purchase Orders (발주 관리 PO)
 CREATE TABLE IF NOT EXISTS public.purchase_orders (
   id TEXT PRIMARY KEY,
   po_number TEXT UNIQUE,
@@ -306,7 +455,7 @@ CREATE TABLE IF NOT EXISTS public.purchase_orders (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 8. Tax Invoices & Documents (세금계산서/명세서)
+-- 13. Tax Documents (세금명세서)
 CREATE TABLE IF NOT EXISTS public.tax_documents (
   id TEXT PRIMARY KEY,
   order_id TEXT,
@@ -322,14 +471,28 @@ CREATE TABLE IF NOT EXISTS public.tax_documents (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 9. Storage Buckets (Public)
+-- 14. Storage Buckets (Public)
 INSERT INTO storage.buckets (id, name, public) VALUES ('products', 'products', true) ON CONFLICT DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('product-images', 'product-images', true) ON CONFLICT DO NOTHING;
 INSERT INTO storage.buckets (id, name, public) VALUES ('banners', 'banners', true) ON CONFLICT DO NOTHING;
-INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT DO NOTHING;
 
--- Storage Public Read Policy
-CREATE POLICY "Public Storage Access" ON storage.objects FOR SELECT USING (bucket_id IN ('products', 'product-images', 'banners', 'avatars'));
+-- 15. Permissive RLS Policies
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wishlists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.search_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.inquiries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_addresses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.role_audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.auth_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public access profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public access cart_items" ON public.cart_items FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public access wishlists" ON public.wishlists FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public access search_logs" ON public.search_logs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public access inquiries" ON public.inquiries FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public access user_addresses" ON public.user_addresses FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public access role_audit_logs" ON public.role_audit_logs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public access auth_logs" ON public.auth_logs FOR ALL USING (true) WITH CHECK (true);
 `;
 
   const handleCopySql = () => {
@@ -420,6 +583,61 @@ CREATE POLICY "Public Storage Access" ON storage.objects FOR SELECT USING (bucke
           <p className="text-[11px] text-neutral-400">
             {connInfo.hasKey ? '실시간 즉시 업로드 활성화' : '아래 입력창에 Anon Key를 입력해주세요'}
           </p>
+        </div>
+      </div>
+
+      {/* ================================================================= */}
+      {/* Header Features Supabase Table Connectivity Matrix */}
+      {/* ================================================================= */}
+      <div className="p-4 bg-neutral-950 border border-cyan-500/30 rounded-xl space-y-3">
+        <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-xs font-bold text-white font-mono uppercase tracking-wider">
+              헤더 8대 기능별 Supabase 테이블 실시간 연결 상태
+            </h3>
+          </div>
+          <span className="text-[10px] font-mono text-neutral-400">
+            총 10개 핵심 테이블 모니터링
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+          {[
+            { key: 'role_audit_logs', label: '1. ROLE 전환 감사', table: 'role_audit_logs' },
+            { key: 'profiles', label: '2. 회원 등급/포인트', table: 'profiles' },
+            { key: 'user_addresses', label: '3. 마이페이지 배송지', table: 'user_addresses' },
+            { key: 'auth_logs', label: '4. 로그아웃/접속로그', table: 'auth_logs' },
+            { key: 'cart_items', label: '5. 장바구니 (3)', table: 'cart_items' },
+            { key: 'inquiries', label: '6. 고객센터 1:1', table: 'inquiries' },
+            { key: 'search_logs', label: '7. 검색창 로그', table: 'search_logs' },
+            { key: 'wishlists', label: '8. 찜하기 (3)', table: 'wishlists' },
+            { key: 'products', label: '상품 데이터', table: 'products' },
+            { key: 'orders', label: '주문/배송', table: 'orders' },
+          ].map((item) => {
+            const isOk = testResult?.tables ? testResult.tables[item.table] : false;
+            return (
+              <div
+                key={item.key}
+                className="p-2.5 bg-neutral-900 border border-neutral-800 rounded flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-white truncate">{item.label}</span>
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      isOk ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]' : 'bg-neutral-600'
+                    }`}
+                  />
+                </div>
+                <div className="mt-1 flex items-center justify-between text-[10px] font-mono">
+                  <span className="text-neutral-500">{item.table}</span>
+                  <span className={isOk ? 'text-emerald-400 font-bold' : 'text-neutral-500'}>
+                    {isOk ? 'SYNC_OK' : 'READY'}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

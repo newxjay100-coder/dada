@@ -1,38 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { UserAddress } from '@/types/database.types';
 import { MapPin, Plus, Check } from 'lucide-react';
+import { api } from '@/services/api';
 
 export const MyAddressesPage: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [addresses, setAddresses] = useState<UserAddress[]>([
-    {
-      id: 'addr-01',
-      user_id: user?.id || 'u-vip',
-      address_name: '자택 (기본배송지)',
-      recipient_name: user?.name || '김다써',
-      recipient_phone: user?.phone || '010-9876-5432',
-      postal_code: '04399',
-      address_line1: '서울시 용산구 한남대로 91',
-      address_line2: '102동 1502호',
-      is_default: true,
-      delivery_memo: '부재 시 문 앞에 놓아주세요.',
-    },
-    {
-      id: 'addr-02',
-      user_id: user?.id || 'u-vip',
-      address_name: '회사',
-      recipient_name: user?.name || '김다써',
-      recipient_phone: user?.phone || '010-9876-5432',
-      postal_code: '06134',
-      address_line1: '서울시 강남구 테헤란로 152',
-      address_line2: '12층 디자인랩',
-      is_default: false,
-      delivery_memo: '경비실에 맡겨주세요.',
-    },
-  ]);
+  const [addresses, setAddresses] = useState<UserAddress[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [addressName, setAddressName] = useState('');
@@ -42,28 +19,53 @@ export const MyAddressesPage: React.FC = () => {
   const [addressLine1, setAddressLine1] = useState('');
   const [addressLine2, setAddressLine2] = useState('');
 
-  const handleAddAddress = (e: React.FormEvent) => {
+  const currentUserId = user?.id || 'u-vip';
+
+  const loadAddresses = () => {
+    setLoading(true);
+    api.getUserAddresses(currentUserId).then((data) => {
+      setAddresses(data);
+      setLoading(false);
+    });
+  };
+
+  useEffect(() => {
+    loadAddresses();
+  }, [currentUserId]);
+
+  const handleAddAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     const newAddr: UserAddress = {
       id: `addr-${Date.now()}`,
-      user_id: user?.id || 'u-vip',
+      user_id: currentUserId,
       address_name: addressName || '배송지',
       recipient_name: recipientName,
       recipient_phone: recipientPhone,
       postal_code: postalCode,
       address_line1: addressLine1,
       address_line2: addressLine2,
-      is_default: false,
+      is_default: addresses.length === 0,
     };
+    await api.saveUserAddress(newAddr);
     setAddresses([...addresses, newAddr]);
     setShowAddModal(false);
-    showToast('새 배송지가 등록되었습니다.', 'success');
+    setAddressName('');
+    setRecipientName('');
+    setRecipientPhone('');
+    setPostalCode('');
+    setAddressLine1('');
+    setAddressLine2('');
+    showToast('새 배송지가 Supabase에 저장되었습니다.', 'success');
   };
 
-  const setDefaultAddress = (id: string) => {
-    setAddresses((prev) =>
-      prev.map((a) => ({ ...a, is_default: a.id === id }))
-    );
+  const setDefaultAddress = async (id: string) => {
+    const updated = addresses.map((a) => {
+      const isDef = a.id === id;
+      const modified = { ...a, is_default: isDef };
+      api.saveUserAddress(modified);
+      return modified;
+    });
+    setAddresses(updated);
     showToast('기본 배송지가 변경되었습니다.', 'info');
   };
 

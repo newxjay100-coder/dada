@@ -1,38 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, TrendingUp, Sparkles } from 'lucide-react';
 import { INITIAL_BRANDS } from '@/mock/seedProducts';
+import { api } from '@/services/api';
 
 interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const POPULAR_KEYWORDS = [
-  '울 블레이저',
-  '캐시미어 니트',
-  '1+1 기획',
-  '맥시 원피스',
-  '와이드 슬랙스',
-  '수피마 티셔츠',
-  '카프스킨 백',
-  '셀비지 데님',
+const DEFAULT_KEYWORDS = [
+  '테크웨어',
+  '네온 카고',
+  '1+1 특가',
+  '사이버 스트릿',
+  '고딕 드레스',
+  '오버핏 자켓',
+  '컴뱃 부츠',
+  '메탈릭 파카',
 ];
 
 export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isOpen) {
+      api.getPopularKeywords().then((kws) => {
+        if (kws && kws.length > 0) setKeywords(kws);
+      });
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
-    navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
+    const query = searchTerm.trim();
+    api.logSearchQuery(query, undefined, 'modal');
+    navigate(`/search?q=${encodeURIComponent(query)}`);
     onClose();
   };
 
   const handleKeywordClick = (kw: string) => {
+    api.logSearchQuery(kw, undefined, 'modal');
     navigate(`/search?q=${encodeURIComponent(kw)}`);
     onClose();
   };
@@ -80,7 +93,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
               </h4>
             </div>
             <div className="flex flex-wrap gap-2">
-              {POPULAR_KEYWORDS.map((kw, idx) => (
+              {keywords.map((kw, idx) => (
                 <button
                   key={kw}
                   onClick={() => handleKeywordClick(kw)}

@@ -1,44 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { Inquiry } from '@/types/database.types';
+import { api } from '@/services/api';
 
 export const MyInquiriesPage: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [inquiries, setInquiries] = useState<Inquiry[]>([
-    {
-      id: 'inq-01',
-      user_id: user?.id || 'u-vip',
-      category: 'shipping',
-      title: '배송지 변경 요청 드립니다.',
-      content: '주문한 코트 출고 전인데 배송지 호수를 1502호에서 1503호로 변경 가능한가요?',
-      status: 'answered',
-      admin_reply: '안녕하세요 고객님! 출고 전 확인되어 1503호로 안전하게 변경 접수되었습니다. 감사합니다.',
-      created_at: '2026-10-04T11:00:00Z',
-    },
-  ]);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [category, setCategory] = useState<'product' | 'shipping' | 'exchange_return' | 'refund' | 'general'>('shipping');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const currentUserId = user?.id || 'u-vip';
+
+  const loadInquiries = () => {
+    setLoading(true);
+    api.getInquiries(currentUserId).then((data) => {
+      setInquiries(data);
+      setLoading(false);
+    });
+  };
+
+  useEffect(() => {
+    loadInquiries();
+  }, [currentUserId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newInq: Inquiry = {
       id: `inq-${Date.now()}`,
-      user_id: user?.id || 'u-vip',
+      user_id: currentUserId,
       category,
       title,
       content,
       status: 'submitted',
       created_at: new Date().toISOString(),
     };
+    await api.createInquiry(newInq);
     setInquiries([newInq, ...inquiries]);
     setShowModal(false);
     setTitle('');
     setContent('');
-    showToast('1:1 문의가 접수되었습니다. 신속하게 답변해 드리겠습니다.', 'success');
+    showToast('1:1 문의가 Supabase에 정상 등록되었습니다. 신속하게 답변해 드리겠습니다.', 'success');
   };
 
   return (
@@ -58,7 +64,12 @@ export const MyInquiriesPage: React.FC = () => {
         </button>
       </div>
 
-      <div className="space-y-4 text-xs">
+      {loading ? (
+        <div className="py-12 text-center text-xs text-neutral-400">문의 내역을 불러오는 중...</div>
+      ) : inquiries.length === 0 ? (
+        <div className="py-12 text-center text-xs text-neutral-400">등록된 1:1 문의 내역이 없습니다.</div>
+      ) : (
+        <div className="space-y-4 text-xs">
         {inquiries.map((inq) => (
           <div key={inq.id} className="p-5 border border-neutral-200 space-y-2">
             <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
@@ -84,7 +95,8 @@ export const MyInquiriesPage: React.FC = () => {
             )}
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
