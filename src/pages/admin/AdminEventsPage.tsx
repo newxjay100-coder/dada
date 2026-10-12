@@ -44,7 +44,7 @@ export const AdminEventsPage: React.FC = () => {
     setEditingEvent(null);
     setTitle('');
     setSubtitle('');
-    setImageUrl('https://images.unsplash.com/photo-1541823709867-1b206113eafd?q=80&w=1600&auto=format&fit=crop');
+    setImageUrl('https://images.unsplash.com/photo-1509967419530-da38b4704bc6?q=80&w=1600&auto=format&fit=crop');
     setLinkUrl('/category/women');
     setStartDate(new Date().toISOString().split('T')[0]);
     setEndDate(new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]);

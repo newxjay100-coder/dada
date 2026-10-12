@@ -24,11 +24,11 @@ export const BrandListPage: React.FC = () => {
       <div className="bg-[#faf9f6] border-b border-neutral-200 py-12 px-4 md:px-8">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="text-center max-w-xl mx-auto">
-            <span className="text-[10px] font-bold tracking-widest uppercase text-neutral-400">
-              BRANDS DIRECTORY
+            <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-cyan-500">
+              BRANDS DIRECTORY // 2077
             </span>
-            <h1 className="text-3xl font-serif font-black text-neutral-900 tracking-tight mt-1">
-              컨템포러리 디자이너 브랜드
+            <h1 className="text-3xl font-orbitron font-black text-neutral-900 tracking-tight mt-1">
+              사이버 스트리트 & 테크웨어 디자이너 레이블
             </h1>
           </div>
 
