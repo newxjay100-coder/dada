@@ -80,30 +80,30 @@ export const MouseShadowFollower: React.FC = () => {
       }}
       aria-hidden="true"
     >
-      {/* 마우스 끝을 자연스럽게 감싸는 순수 입체 그림자 (Pure Soft Depth Shadow) */}
+      {/* 마우스 끝을 자연스럽게 감싸는 사이버 앰비언트 그림자 & 오라 (Cyber Ambient Shadow Aura) */}
       <div
         className={`relative -top-4 -left-4 rounded-full transition-all duration-300 ${
           isHoveringClickable ? 'scale-125' : 'scale-100'
         }`}
       >
-        {/* 1. 중심부 부드러운 입체 자연 음영 */}
+        {/* 1. 중심부 부드러운 사이버 입체 음영 */}
         <div
           className="w-12 h-12 rounded-full"
           style={{
             background:
-              'radial-gradient(circle, rgba(17,17,17,0.25) 0%, rgba(114,27,41,0.14) 40%, rgba(0,0,0,0.05) 70%, transparent 100%)',
+              'radial-gradient(circle, rgba(0,240,255,0.22) 0%, rgba(255,0,127,0.12) 40%, rgba(0,0,0,0.5) 70%, transparent 100%)',
             filter: 'blur(8px)',
             transform: 'translate(4px, 4px)',
           }}
         />
 
-        {/* 2. 바깥쪽으로 은은하게 퍼지는 부드러운 앰비언트 섀도우 */}
+        {/* 2. 바깥쪽으로 은은하게 퍼지는 소프트 앰비언트 섀도우 */}
         <div
           className="absolute inset-0 w-20 h-20 -top-4 -left-4 rounded-full"
           style={{
             background: isHoveringClickable
-              ? 'radial-gradient(circle, rgba(114,27,41,0.22) 0%, rgba(17,17,17,0.10) 50%, transparent 75%)'
-              : 'radial-gradient(circle, rgba(17,17,17,0.14) 0%, rgba(114,27,41,0.06) 50%, transparent 75%)',
+              ? 'radial-gradient(circle, rgba(0,240,255,0.25) 0%, rgba(255,0,127,0.15) 50%, transparent 75%)'
+              : 'radial-gradient(circle, rgba(0,240,255,0.14) 0%, rgba(121,40,202,0.08) 50%, transparent 75%)',
             filter: 'blur(18px)',
           }}
         />

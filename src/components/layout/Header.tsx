@@ -7,7 +7,7 @@ import {
   User,
   Menu,
   Shield,
-  ExternalLink,
+  Zap,
   ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -47,103 +47,102 @@ export const Header: React.FC = () => {
     { label: '베스트', slug: 'best', hasMega: false, path: '/best' },
     { label: '기획전', slug: 'editorial', hasMega: false, path: '/special/editorial' },
     { label: '이벤트', slug: 'events', hasMega: false, path: '/events' },
-    { label: '1+1', slug: 'one-plus-one', hasMega: false, path: '/1plus1', highlight: true },
+    { label: '1+1 특가', slug: 'one-plus-one', hasMega: false, path: '/1plus1', highlight: true },
     { label: '리뷰', slug: 'reviews', hasMega: false, path: '/reviews' },
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-neutral-200">
+    <header className="sticky top-0 z-40 bg-[#0a0a14]/95 backdrop-blur-xl border-b border-cyan-500/25 text-white">
       {/* Top Utility Bar */}
-      <div className="bg-[#fcfbfa] border-b border-neutral-100 text-[11px] text-neutral-500 py-1.5 px-4 md:px-8">
+      <div className="bg-[#05050b] border-b border-white/5 text-[11px] text-neutral-400 py-1.5 px-4 md:px-8">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Left: Brand Tagline & Supabase Status */}
+          {/* Left: Brand Tagline & Status */}
           <div className="flex items-center gap-3">
-            <span className="hidden sm:inline font-normal tracking-wide text-neutral-600">
-              입어보고 싶은 모든 스타일을 한곳에서
+            <span className="hidden sm:inline font-mono tracking-wide text-neutral-400">
+              ⚡ DASSOBA CYBER STREETWEAR // 2077
             </span>
             <span
-              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
                 isSupabaseConfigured
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : 'bg-amber-100 text-amber-800'
+                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
+                  : 'bg-cyan-950 text-cyan-300 border border-cyan-500/40'
               }`}
-              title={
-                isSupabaseConfigured
-                  ? 'Supabase 실시간 데이터베이스 연동됨'
-                  : '로컬 프로토타입 모드 작동 중 (.env 파일에 VITE_SUPABASE_ANON_KEY 설정 시 실시간 연동)'
-              }
             >
               <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  isSupabaseConfigured ? 'bg-emerald-600' : 'bg-amber-500'
+                className={`w-1.5 h-1.5 rounded-full animate-ping ${
+                  isSupabaseConfigured ? 'bg-emerald-400' : 'bg-cyan-400'
                 }`}
               />
-              {isSupabaseConfigured ? 'Supabase Live' : 'Demo Prototype'}
+              {isSupabaseConfigured ? 'CORE: LIVE' : 'CYBER_DEMO'}
             </span>
           </div>
 
           {/* Right: User Utility Actions */}
           <div className="flex items-center gap-4">
-            {/* Quick Role Switcher for seamless test review */}
-            <div className="flex items-center gap-1.5 bg-neutral-100 px-2 py-0.5 rounded">
-              <span className="text-[10px] text-neutral-400">모드:</span>
+            {/* Quick Role Switcher */}
+            <div className="flex items-center gap-1 bg-[#101020] border border-cyan-500/30 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-mono text-cyan-400">ROLE:</span>
               <button
                 onClick={() => switchUserRole('customer')}
-                className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${
-                  !isAdmin ? 'bg-white text-neutral-900 shadow-xs' : 'text-neutral-500 hover:text-neutral-900'
+                className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-bold transition-all ${
+                  !isAdmin
+                    ? 'bg-cyan-400 text-black shadow-[0_0_8px_rgba(0,240,255,0.6)]'
+                    : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                고객
+                USER
               </button>
               <button
                 onClick={() => switchUserRole('admin')}
-                className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${
-                  isAdmin ? 'bg-neutral-900 text-white shadow-xs' : 'text-neutral-500 hover:text-neutral-900'
+                className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-bold transition-all ${
+                  isAdmin
+                    ? 'bg-pink-500 text-white shadow-[0_0_8px_rgba(255,0,127,0.6)]'
+                    : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                관리자
+                ADMIN
               </button>
             </div>
 
             {isAdmin && (
               <Link
                 to="/admin"
-                className="flex items-center gap-1 font-semibold text-[#721b29] hover:underline"
+                className="flex items-center gap-1 font-mono font-bold text-pink-400 hover:text-pink-300 transition-colors"
               >
-                <Shield className="w-3 h-3" /> 관리자 콘솔
+                <Shield className="w-3 h-3 text-pink-400" /> 관리자 콘솔
               </Link>
             )}
 
             {isLoggedIn ? (
               <>
-                <span className="text-neutral-800 font-medium hidden sm:inline">
-                  {user?.name}님 ({user?.member_grade})
+                <span className="text-cyan-300 font-mono hidden sm:inline">
+                  {user?.name}님 [{user?.member_grade}]
                 </span>
-                <Link to="/mypage" className="hover:text-neutral-900 transition-colors">
+                <Link to="/mypage" className="hover:text-cyan-300 transition-colors">
                   마이페이지
                 </Link>
                 <button
                   onClick={logout}
-                  className="hover:text-neutral-900 transition-colors"
+                  className="hover:text-pink-400 transition-colors"
                 >
                   로그아웃
                 </button>
               </>
             ) : (
               <>
-                <Link to="/auth/login" className="hover:text-neutral-900 transition-colors">
+                <Link to="/login" className="hover:text-cyan-300 transition-colors">
                   로그인
                 </Link>
-                <Link to="/auth/register" className="hover:text-neutral-900 transition-colors">
+                <Link to="/register" className="hover:text-pink-400 transition-colors">
                   회원가입
                 </Link>
               </>
             )}
 
-            <Link to="/cart" className="hover:text-neutral-900 transition-colors">
+            <Link to="/cart" className="hover:text-cyan-300 transition-colors">
               장바구니 ({totalItemsCount})
             </Link>
-            <Link to="/customer" className="hover:text-neutral-900 transition-colors hidden sm:inline">
+            <Link to="/customer" className="hover:text-cyan-300 transition-colors hidden sm:inline">
               고객센터
             </Link>
           </div>
@@ -151,44 +150,44 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Main Header Bar */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-4">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-3.5">
         <div className="flex items-center justify-between gap-4">
           {/* Left: Mobile Menu & Brand Logo */}
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-1 text-neutral-800 hover:text-black"
+              className="md:hidden p-1 text-neutral-300 hover:text-cyan-300"
               aria-label="카테고리 메뉴 열기"
             >
               <Menu className="w-6 h-6" />
             </button>
 
             <Link to="/" className="flex flex-col group">
-              <span className="text-2xl md:text-3xl font-serif font-black tracking-tight text-neutral-950 group-hover:text-[#721b29] transition-colors">
+              <span className="text-2xl md:text-3xl font-black tracking-tight text-white group-hover:text-cyan-300 transition-colors drop-shadow-[0_0_12px_rgba(0,240,255,0.4)]">
                 DASSOBA
               </span>
-              <span className="text-[9px] tracking-widest text-neutral-400 font-sans uppercase -mt-1 font-medium">
-                다써바 • Contemporary
+              <span className="text-[9px] font-mono tracking-widest text-cyan-400/80 uppercase -mt-1 font-bold">
+                CYBER_STREET // CONTEMPORARY
               </span>
             </Link>
           </div>
 
-          {/* Center: Large Integrated Search Bar (Desktop) */}
+          {/* Center: Large Cyber Search Bar (Desktop) */}
           <div className="hidden md:flex flex-1 max-w-xl mx-8">
             <form
               onSubmit={handleSearchSubmit}
-              className="w-full relative flex items-center bg-[#f8f8f8] hover:bg-[#f3f3f3] focus-within:bg-white border border-neutral-300 focus-within:border-neutral-900 transition-all"
+              className="w-full relative flex items-center bg-[#101020] hover:bg-[#15152a] focus-within:bg-[#121226] border border-cyan-500/30 focus-within:border-cyan-400 rounded-lg transition-all shadow-[0_0_15px_rgba(0,240,255,0.1)] focus-within:shadow-[0_0_20px_rgba(0,240,255,0.3)]"
             >
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="입어보고 싶은 스타일, 브랜드, 1+1 기획전 검색"
-                className="w-full py-2.5 pl-4 pr-10 text-xs text-neutral-900 bg-transparent focus:outline-none"
+                placeholder="테크웨어, 네온 카고, 1+1 듀얼특가, 사이버 스트릿 검색"
+                className="w-full py-2.5 pl-4 pr-10 text-xs text-white placeholder-neutral-500 bg-transparent focus:outline-none font-mono"
               />
               <button
                 type="submit"
-                className="absolute right-3 text-neutral-500 hover:text-neutral-900"
+                className="absolute right-3 text-cyan-400 hover:text-cyan-300"
                 aria-label="검색"
               >
                 <Search className="w-4 h-4" />
@@ -197,11 +196,11 @@ export const Header: React.FC = () => {
           </div>
 
           {/* Right: Quick Action Icons */}
-          <div className="flex items-center gap-3 md:gap-5 text-neutral-800">
+          <div className="flex items-center gap-3 md:gap-5 text-neutral-300">
             {/* Search Trigger for Mobile */}
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="md:hidden p-2 hover:text-[#721b29]"
+              className="md:hidden p-2 hover:text-cyan-300"
               aria-label="검색창 열기"
             >
               <Search className="w-5 h-5" />
@@ -210,12 +209,12 @@ export const Header: React.FC = () => {
             {/* Wishlist */}
             <Link
               to="/mypage/wishlist"
-              className="relative p-2 hover:text-[#721b29] transition-colors"
+              className="relative p-2 hover:text-pink-400 transition-colors"
               aria-label="찜한 상품"
             >
               <Heart className="w-5 h-5" />
               {totalWishlistCount > 0 && (
-                <span className="absolute top-1 right-1 bg-[#721b29] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                <span className="absolute top-1 right-1 bg-pink-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold font-mono shadow-[0_0_8px_rgba(255,0,127,0.7)]">
                   {totalWishlistCount}
                 </span>
               )}
@@ -224,12 +223,12 @@ export const Header: React.FC = () => {
             {/* Cart */}
             <Link
               to="/cart"
-              className="relative p-2 hover:text-[#721b29] transition-colors"
+              className="relative p-2 hover:text-cyan-300 transition-colors"
               aria-label="장바구니"
             >
               <ShoppingBag className="w-5 h-5" />
               {totalItemsCount > 0 && (
-                <span className="absolute top-1 right-1 bg-neutral-900 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                <span className="absolute top-1 right-1 bg-cyan-400 text-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold font-mono shadow-[0_0_8px_rgba(0,240,255,0.7)]">
                   {totalItemsCount}
                 </span>
               )}
@@ -237,8 +236,8 @@ export const Header: React.FC = () => {
 
             {/* User MyPage */}
             <Link
-              to={isLoggedIn ? '/mypage' : '/auth/login'}
-              className="p-2 hover:text-[#721b29] transition-colors hidden sm:block"
+              to={isLoggedIn ? '/mypage' : '/login'}
+              className="p-2 hover:text-cyan-300 transition-colors hidden sm:block"
               aria-label="마이페이지"
             >
               <User className="w-5 h-5" />
@@ -248,7 +247,7 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Main Navigation Bar (Desktop) */}
-      <div className="hidden md:block border-t border-neutral-100 bg-white relative">
+      <div className="hidden md:block border-t border-cyan-500/15 bg-[#07070f] relative">
         <div className="max-w-7xl mx-auto px-8">
           <nav className="flex items-center justify-between text-xs tracking-tight">
             <div className="flex items-center space-x-7">
@@ -260,7 +259,7 @@ export const Header: React.FC = () => {
                 return (
                   <div
                     key={cat.slug}
-                    className="relative py-3.5 group"
+                    className="relative py-3 group"
                     onMouseEnter={() => {
                       if (cat.hasMega) setActiveMegaCategory(cat.slug);
                       else setActiveMegaCategory(null);
@@ -268,17 +267,17 @@ export const Header: React.FC = () => {
                   >
                     <Link
                       to={cat.path}
-                      className={`font-medium transition-colors flex items-center gap-1 ${
+                      className={`font-mono text-xs transition-all flex items-center gap-1 ${
                         isActive
-                          ? 'text-[#721b29] font-bold border-b-2 border-[#721b29] -mb-[2px] pb-3'
+                          ? 'text-cyan-300 font-bold border-b-2 border-cyan-400 -mb-[2px] pb-2.5 drop-shadow-[0_0_8px_rgba(0,240,255,0.5)]'
                           : cat.highlight
-                          ? 'text-[#721b29] font-bold hover:text-black'
-                          : 'text-neutral-800 hover:text-[#721b29]'
+                          ? 'text-yellow-300 font-bold hover:text-white drop-shadow-[0_0_6px_rgba(250,204,21,0.5)]'
+                          : 'text-neutral-300 hover:text-cyan-300'
                       }`}
                     >
                       {cat.label}
                       {cat.hasMega && (
-                        <ChevronDown className="w-3 h-3 text-neutral-400 group-hover:text-neutral-800 transition-transform group-hover:rotate-180" />
+                        <ChevronDown className="w-3 h-3 text-neutral-500 group-hover:text-cyan-300 transition-transform group-hover:rotate-180" />
                       )}
                     </Link>
                   </div>
@@ -286,10 +285,12 @@ export const Header: React.FC = () => {
               })}
             </div>
 
-            {/* Editorial Quick Promo Tag */}
-            <div className="flex items-center gap-2 text-[11px] text-neutral-500">
-              <span className="text-[#721b29] font-semibold">봄 정기 신상전</span>
-              <span>최대 30% 할인</span>
+            {/* Cyber Quick Promo Tag */}
+            <div className="flex items-center gap-2 text-[11px] font-mono">
+              <span className="text-pink-400 font-bold flex items-center gap-1">
+                <Zap className="w-3 h-3 text-yellow-300" /> S/S CYBER DROP
+              </span>
+              <span className="text-neutral-400">UP TO 50% OFF</span>
             </div>
           </nav>
         </div>

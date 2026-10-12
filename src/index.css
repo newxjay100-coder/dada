@@ -2,61 +2,121 @@
 
 @layer base {
   :root {
-    --brand-burgundy: #721b29;
-    --brand-burgundy-dark: #56121e;
-    --brand-burgundy-light: #942537;
-    --brand-beige: #f8f6f0;
-    --brand-beige-dark: #eee9dc;
-    --brand-beige-light: #fdfcf9;
-    --brand-black: #111111;
-    --brand-gray-light: #f5f5f7;
-    --brand-gray-border: #e5e5e7;
-    --brand-gray-muted: #767676;
+    --brand-burgundy: #ff007f; /* Cyber Hot Pink / Neon Magenta */
+    --brand-burgundy-dark: #b80058;
+    --brand-burgundy-light: #ff3399;
+    --brand-cyan: #00f0ff; /* Cyber Neon Cyan */
+    --brand-cyan-dark: #00b4d8;
+    --brand-yellow: #fcee0a; /* Cyberpunk Neon Yellow */
+    --brand-purple: #9d4edd; /* Electric Violet */
+    --brand-black: #08080f; /* Deep Cyber Obsidian */
+    --brand-dark: #0d0d18;
+    --brand-card: #131322;
+    --brand-gray-border: #1e1e34;
+    --brand-gray-muted: #8b8ba7;
   }
 
   body {
-    background-color: #ffffff;
-    color: #111111;
+    background-color: #07070e;
+    color: #e2e2ee;
     font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Noto Sans KR", "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
   }
 
-  /* Custom scrollbar for editorial feel */
+  /* Cyberpunk Custom Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #f8f8f8;
+    background: #080811;
   }
   ::-webkit-scrollbar-thumb {
-    background: #d1d1d1;
+    background: linear-gradient(180deg, #00f0ff 0%, #ff007f 100%);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #999999;
+    background: #00f0ff;
+    box-shadow: 0 0 10px #00f0ff;
   }
 }
 
+/* Cyberpunk Custom Utilities */
+.cyber-grid-bg {
+  background-color: #07070e;
+  background-image: 
+    linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.cyber-card {
+  background: linear-gradient(135deg, rgba(20, 20, 36, 0.85) 0%, rgba(12, 12, 22, 0.95) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+}
+
+.cyber-card:hover {
+  border-color: rgba(0, 240, 255, 0.6);
+  box-shadow: 0 12px 36px rgba(0, 240, 255, 0.2), inset 0 1px 1px rgba(0, 240, 255, 0.3);
+}
+
+.cyber-btn {
+  position: relative;
+  clip-path: polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cyber-btn:hover {
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.6);
+  transform: translateY(-2px);
+}
+
+.neon-text-cyan {
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.7), 0 0 20px rgba(0, 240, 255, 0.4);
+}
+
+.neon-text-pink {
+  text-shadow: 0 0 10px rgba(255, 0, 127, 0.7), 0 0 20px rgba(255, 0, 127, 0.4);
+}
+
+.neon-border-glow {
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
+}
+
 /* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes cdSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes glitchFlicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.8; }
+  94% { opacity: 1; }
+  96% { opacity: 0.9; }
+  97% { opacity: 1; }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+@keyframes pulseGlow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.6)); }
+  50% { filter: drop-shadow(0 0 16px rgba(255, 0, 127, 0.8)); }
 }
 
-.animate-slide-down {
-  animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-cd-spin {
+  animation: cdSpin 3s linear infinite;
+}
+
+.animate-glitch {
+  animation: glitchFlicker 4s infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s ease-in-out infinite;
 }
 
 /* Hide scrollbar for category tabs */

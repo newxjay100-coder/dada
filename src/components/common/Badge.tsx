@@ -12,17 +12,17 @@ export const Badge: React.FC<BadgeProps> = ({
   className = '',
 }) => {
   const variantStyles = {
-    primary: 'bg-neutral-900 text-white',
-    secondary: 'bg-neutral-100 text-neutral-800',
-    outline: 'border border-neutral-300 text-neutral-700 bg-white',
-    danger: 'bg-red-50 text-red-700 border border-red-200',
-    burgundy: 'bg-[#721b29] text-white font-bold',
-    accent: 'bg-amber-100 text-amber-900 font-semibold',
+    primary: 'bg-cyan-950 text-cyan-300 border border-cyan-400 shadow-[0_0_8px_rgba(0,240,255,0.4)]',
+    secondary: 'bg-pink-950 text-pink-300 border border-pink-500 shadow-[0_0_8px_rgba(255,0,127,0.4)]',
+    outline: 'border border-cyan-500/40 text-cyan-300 bg-black/60',
+    danger: 'bg-red-950 text-red-300 border border-red-500',
+    burgundy: 'bg-[#ff007f] text-black font-black shadow-[0_0_10px_rgba(255,0,127,0.6)]',
+    accent: 'bg-yellow-950 text-yellow-300 border border-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)]',
   };
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 text-[10px] tracking-tight font-medium ${variantStyles[variant]} ${className}`}
+      className={`inline-flex items-center px-2 py-0.5 text-[10px] tracking-tight font-mono font-bold rounded ${variantStyles[variant]} ${className}`}
     >
       {children}
     </span>

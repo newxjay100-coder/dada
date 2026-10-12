@@ -18,70 +18,75 @@ export const BestRankingSection: React.FC<BestRankingSectionProps> = ({ products
     .slice(0, 8);
 
   return (
-    <section className="py-16 md:py-24 bg-[#faf9f7] border-b border-neutral-100">
+    <section className="py-16 md:py-24 bg-[#090913] border-b border-pink-500/20 relative">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
           <div>
-            <div className="flex items-center gap-1.5 text-[#721b29] mb-1">
-              <Flame className="w-4 h-4" />
-              <span className="text-[11px] font-bold tracking-widest uppercase">
-                MOST LOVED STYLES
+            <div className="flex items-center gap-1.5 text-pink-400 mb-1">
+              <Flame className="w-4 h-4 fill-pink-500" />
+              <span className="text-[11px] font-mono font-black tracking-widest uppercase">
+                MOST_WANTED // REALTIME_RANKING
               </span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-serif font-black text-neutral-900 tracking-tight">
-              BEST RANKING
+            <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-[0_0_12px_rgba(255,0,127,0.3)]">
+              BEST RANKING TOP
             </h2>
           </div>
 
           {/* Ranking Time Period Filter */}
-          <div className="flex items-center bg-white border border-neutral-200 p-1">
+          <div className="flex items-center bg-[#101020] border border-pink-500/30 p-1 rounded-lg">
             <button
               onClick={() => setPeriod('daily')}
-              className={`px-3 py-1 text-xs font-semibold tracking-wider transition-colors ${
+              className={`px-3 py-1 text-xs font-mono font-bold tracking-wider transition-all rounded ${
                 period === 'daily'
-                  ? 'bg-neutral-900 text-white'
-                  : 'text-neutral-500 hover:text-neutral-900'
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-[0_0_10px_rgba(255,0,127,0.5)]'
+                  : 'text-neutral-400 hover:text-white'
               }`}
             >
-              일간
+              DAILY
             </button>
             <button
               onClick={() => setPeriod('weekly')}
-              className={`px-3 py-1 text-xs font-semibold tracking-wider transition-colors ${
+              className={`px-3 py-1 text-xs font-mono font-bold tracking-wider transition-all rounded ${
                 period === 'weekly'
-                  ? 'bg-neutral-900 text-white'
-                  : 'text-neutral-500 hover:text-neutral-900'
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-[0_0_10px_rgba(255,0,127,0.5)]'
+                  : 'text-neutral-400 hover:text-white'
               }`}
             >
-              주간
+              WEEKLY
             </button>
             <button
               onClick={() => setPeriod('monthly')}
-              className={`px-3 py-1 text-xs font-semibold tracking-wider transition-colors ${
+              className={`px-3 py-1 text-xs font-mono font-bold tracking-wider transition-all rounded ${
                 period === 'monthly'
-                  ? 'bg-neutral-900 text-white'
-                  : 'text-neutral-500 hover:text-neutral-900'
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-[0_0_10px_rgba(255,0,127,0.5)]'
+                  : 'text-neutral-400 hover:text-white'
               }`}
             >
-              월간
+              MONTHLY
             </button>
           </div>
         </div>
 
         {/* Products Grid with Ranks */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
-          {bestProducts.map((prod, idx) => (
-            <ProductCard key={prod.id} product={prod} rank={idx + 1} />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          {bestProducts.map((product, index) => (
+            <ProductCard key={product.id} product={product} rank={index + 1} />
           ))}
         </div>
 
+        {/* View All CTA */}
         <div className="mt-12 text-center">
           <Link
             to="/best"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-neutral-900 text-white text-xs font-bold tracking-widest uppercase hover:bg-neutral-800 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#0e0e1a] hover:bg-gradient-to-r hover:from-pink-500 hover:to-cyan-400 hover:text-black border border-pink-500/40 hover:border-transparent text-pink-300 font-mono font-bold text-xs tracking-wider uppercase transition-all shadow-[0_0_15px_rgba(255,0,127,0.2)] hover:shadow-[0_0_25px_rgba(255,0,127,0.5)]"
+            style={{
+              clipPath: 'polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px)',
+            }}
           >
-            실시간 랭킹 전체보기 <ArrowRight className="w-4 h-4" />
+            <span>베스트 랭킹 100 전체보기 (TOP_RANKING)</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </div>
