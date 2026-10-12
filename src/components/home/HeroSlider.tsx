@@ -63,10 +63,15 @@ export const HeroSlider: React.FC = () => {
                 </span>
               </div>
 
-              {/* Title with Cyber Glow */}
-              <h1 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight leading-tight text-white drop-shadow-[0_0_20px_rgba(0,240,255,0.3)]">
-                {slide.title}
-              </h1>
+              {/* Main Title with Cyberpunk Smooth Neon Lighting (천천히 스무스한 네온 조명) */}
+              <div className="relative inline-block max-w-full">
+                {/* Smooth Breathing Ambient Lighting Halo */}
+                <div className="absolute -inset-8 bg-gradient-to-r from-cyan-500/25 via-pink-500/20 to-purple-500/25 blur-3xl rounded-full pointer-events-none opacity-80" />
+
+                <h1 className="relative font-orbitron text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-wider leading-[1.12] text-white animate-neon-smooth uppercase select-none">
+                  {slide.title}
+                </h1>
+              </div>
 
               {/* Subtitle */}
               <p className="text-xs sm:text-sm md:text-base text-neutral-300 font-normal leading-relaxed max-w-lg drop-shadow">

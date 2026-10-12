@@ -27,7 +27,7 @@ export const MobileCategoryDrawer: React.FC<MobileCategoryDrawerProps> = ({ isOp
       <div className="relative w-full max-w-sm bg-white h-full flex flex-col shadow-2xl z-10 animate-fade-in">
         {/* Drawer Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-100">
-          <Link to="/" onClick={onClose} className="font-serif font-bold text-lg tracking-tight">
+          <Link to="/" onClick={onClose} className="font-orbitron font-black text-xl tracking-widest text-neutral-950 hover:text-cyan-500 transition-colors">
             DASSOBA
           </Link>
           <button

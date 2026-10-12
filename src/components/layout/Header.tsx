@@ -162,11 +162,18 @@ export const Header: React.FC = () => {
               <Menu className="w-6 h-6" />
             </button>
 
-            <Link to="/" className="flex flex-col group">
-              <span className="text-2xl md:text-3xl font-black tracking-tight text-white group-hover:text-cyan-300 transition-colors drop-shadow-[0_0_12px_rgba(0,240,255,0.4)]">
-                DASSOBA
-              </span>
-              <span className="text-[9px] font-mono tracking-widest text-cyan-400/80 uppercase -mt-1 font-bold">
+            <Link to="/" className="flex flex-col group relative select-none">
+              {/* Neon Ambient Halo Backlight */}
+              <div className="absolute -inset-2 bg-cyan-500/15 blur-lg rounded-full opacity-60 group-hover:opacity-100 group-hover:bg-cyan-400/25 transition-all pointer-events-none" />
+
+              <div className="relative flex items-center">
+                <span className="font-orbitron text-2xl md:text-3xl font-black tracking-widest text-white animate-neon-logo transition-transform duration-300 group-hover:scale-[1.03]">
+                  DASSOBA
+                </span>
+                {/* Neon Sparkle Indicator */}
+                <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-pink-500 animate-ping shadow-[0_0_8px_#ff007f]" />
+              </div>
+              <span className="text-[9px] font-mono tracking-[0.24em] text-cyan-300/90 uppercase -mt-0.5 font-bold drop-shadow-[0_0_6px_rgba(0,240,255,0.6)]">
                 CYBER_STREET // CONTEMPORARY
               </span>
             </Link>

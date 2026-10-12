@@ -60,9 +60,12 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-10">
           <div className="col-span-2">
-            <span className="text-2xl font-black text-white tracking-tight block mb-2 drop-shadow-[0_0_12px_rgba(0,240,255,0.4)]">
-              DASSOBA
-            </span>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="font-orbitron text-2xl font-black text-white tracking-widest animate-neon-logo drop-shadow-[0_0_12px_rgba(0,240,255,0.6)]">
+                DASSOBA
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-ping shadow-[0_0_8px_#ff007f]" />
+            </div>
             <p className="text-neutral-400 text-xs leading-relaxed max-w-sm mb-4 font-sans">
               입어보고 싶은 모든 스타일을 한곳에서. 하이엔드 퓨처리즘과 사이버 스트릿웨어를 선도하는 트렌디 패션 플랫폼입니다.
             </p>
