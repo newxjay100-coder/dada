@@ -20,7 +20,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 
-export type ChannelId = 'hiphop' | 'funk' | 'cafe';
+export type ChannelId = 'metal' | 'hiphop' | 'funk' | 'cafe';
 
 export interface CyberTrack {
   id: string;
@@ -36,13 +36,51 @@ export interface CyberTrack {
 }
 
 export const TRACK_CHANNELS: { id: ChannelId; name: string; shortName: string; icon: React.ElementType }[] = [
+  { id: 'metal', name: '⚡ 하드락 & 메탈 (HARD ROCK & THRASH)', shortName: '하드락/메탈', icon: Flame },
   { id: 'hiphop', name: '🎤 힙합 & 랩 (BOOM-BAP & RAP)', shortName: '힙합 & 랩', icon: Mic },
   { id: 'funk', name: '🔥 펑키 힙합 (CYBER FUNK)', shortName: '펑키 힙합', icon: Zap },
   { id: 'cafe', name: '☕ 감성 카페 (COZY CAFE)', shortName: '감성 카페', icon: Coffee },
 ];
 
 export const ALL_TRACKS: CyberTrack[] = [
-  // Channel 1: 힙합 & 랩 (HIP-HOP & RAP - 3곡)
+  // Channel 1: 하드락 & 스래쉬 메탈 (HARD ROCK & THRASH METAL - 3곡)
+  {
+    id: 'aggressor',
+    title: 'Aggressor',
+    koreanTitle: '어그레서 스피드 스래쉬 메탈',
+    artist: 'Kevin MacLeod',
+    genre: 'Speed Metal / Thrash Metal',
+    channel: 'metal',
+    description: '150 BPM 폭풍 질주 투베이스 드럼과 날카로운 디스토션 기타 리프의 익스트림 스래쉬 메탈',
+    src: '/audio/aggressor.mp3',
+    duration: '3:20',
+    bpm: 150,
+  },
+  {
+    id: 'metalmania',
+    title: 'Metalmania',
+    koreanTitle: '메탈매니아 하드락',
+    artist: 'Kevin MacLeod',
+    genre: 'Heavy Metal / Hard Rock',
+    channel: 'metal',
+    description: '묵직한 파워코드와 드라이빙한 드럼 비트가 작렬하는 정통 하드락 & 헤비메탈',
+    src: '/audio/metalmania.mp3',
+    duration: '2:40',
+    bpm: 150,
+  },
+  {
+    id: 'noise-attack',
+    title: 'Noise Attack',
+    koreanTitle: '노이즈 어택 익스트림 메탈',
+    artist: 'Kevin MacLeod',
+    genre: 'Hardcore Metal / Thrash Assault',
+    channel: 'metal',
+    description: '원초적인 분노와 강력한 헤비 드럼 어택이 돋보이는 하이퍼 하드락 트랙',
+    src: '/audio/noise_attack.mp3',
+    duration: '2:43',
+    bpm: 140,
+  },
+  // Channel 2: 힙합 & 랩 (HIP-HOP & RAP - 3곡)
   {
     id: 'griphop',
     title: 'Griphop',
@@ -546,7 +584,12 @@ export const BackgroundMusicPlayer: React.FC = () => {
           >
             <div className="flex items-center gap-1.5">
               <span className="inline-flex items-center gap-1 text-[9px] font-mono font-black uppercase text-cyan-300 bg-cyan-950/80 border border-cyan-400/40 px-1.5 py-0.2 rounded">
-                {activeChannel === 'hiphop' ? (
+                {activeChannel === 'metal' ? (
+                  <>
+                    <Flame className="w-2.5 h-2.5 text-red-500 animate-pulse" />
+                    HARD ROCK & METAL
+                  </>
+                ) : activeChannel === 'hiphop' ? (
                   <>
                     <Mic className="w-2.5 h-2.5 text-pink-400" />
                     HIP-HOP & RAP
@@ -642,7 +685,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
 
         {/* EXPANDABLE CYBER DECK / JEWEL CASE (사이버펑크 플레이리스트 & 덱) */}
         {isExpanded && (
-          <div className="w-[320px] sm:w-[370px] bg-[#090914]/95 text-white backdrop-blur-2xl rounded-2xl border border-cyan-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(0,240,255,0.2)] p-4 space-y-3 animate-fade-in">
+          <div className="w-[320px] sm:w-[380px] bg-[#090914]/95 text-white backdrop-blur-2xl rounded-2xl border border-cyan-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(0,240,255,0.2)] p-4 space-y-3 animate-fade-in">
             {/* Header: Draggable hint and Reset position */}
             <div className="flex items-center justify-between text-[10px] font-mono text-neutral-400 border-b border-white/10 pb-2">
               <span className="flex items-center gap-1 text-cyan-400">
@@ -657,8 +700,8 @@ export const BackgroundMusicPlayer: React.FC = () => {
               </button>
             </div>
 
-            {/* 3-Channel Switcher Tabs (3개 장르 채널 탭) */}
-            <div className="grid grid-cols-3 gap-1 p-1 bg-black/60 rounded-xl border border-white/10">
+            {/* 4-Channel Switcher Tabs (4개 장르 채널 탭) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 bg-black/60 rounded-xl border border-white/10">
               {TRACK_CHANNELS.map((ch) => {
                 const isActive = activeChannel === ch.id;
                 return (
@@ -668,7 +711,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
                       setActiveChannel(ch.id);
                       setTrackIndex(0);
                     }}
-                    className={`py-1.5 px-1.5 rounded-lg text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 ${
+                    className={`py-1.5 px-1 rounded-lg text-[10px] sm:text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 ${
                       isActive
                         ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-[0_0_12px_rgba(0,240,255,0.5)]'
                         : 'text-neutral-400 hover:text-white hover:bg-white/5'
@@ -733,7 +776,9 @@ export const BackgroundMusicPlayer: React.FC = () => {
             <div className="space-y-1 pt-1">
               <div className="text-[10px] font-mono font-bold text-neutral-400 flex items-center justify-between px-1">
                 <span>
-                  {activeChannel === 'hiphop'
+                  {activeChannel === 'metal'
+                    ? '하드락 & 메탈 트랙 (3곡)'
+                    : activeChannel === 'hiphop'
                     ? '힙합 & 랩 비트 (3곡)'
                     : activeChannel === 'funk'
                     ? '펑키 힙합 트랙 (3곡)'
