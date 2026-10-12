@@ -108,17 +108,17 @@ ON CONFLICT (slug) DO NOTHING;
 -- 6. Events & Campaigns
 INSERT INTO events (id, slug, title, subtitle, banner_image_url, link_url, event_type, start_date, end_date, is_active, display_order)
 VALUES
-  ('55555555-5555-5555-5555-555555550001', 'spring-editorial-2026', '2026 SPRING EDITORIAL', '빛과 실루엣이 빚어낸 현대적 모더니즘의 새로운 정의', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1600&auto=format&fit=crop', '/special/editorial', 'campaign', CURRENT_DATE - 5, CURRENT_DATE + 30, true, 1),
-  ('55555555-5555-5555-5555-555555550002', 'one-plus-one-special', 'DASSOBA 1+1 SPECIAL EVENT', '하나 가격으로 두 가지 스타일을 완성하는 스페셜 셀렉션', 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?q=80&w=1600&auto=format&fit=crop', '/1plus1', 'one_plus_one', CURRENT_DATE - 2, CURRENT_DATE + 20, true, 2),
-  ('55555555-5555-5555-5555-555555550003', 'the-noir-signature', 'THE NOIR SIGNATURE TAILORING', '감각적인 절개선과 섬세한 질감의 럭셔리 수트 캡슐 컬렉션', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1600&auto=format&fit=crop', '/brands/the-noir', 'brand', CURRENT_DATE - 1, CURRENT_DATE + 40, true, 3),
-  ('55555555-5555-5555-5555-555555550004', 'minimal-knitwear-week', 'MINIMAL CASHMERE & SILK WEEK', '체온을 머금는 최상급 천연 원사 니트 특별전', 'https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=1600&auto=format&fit=crop', '/special/knitwear', 'seasonal', CURRENT_DATE, CURRENT_DATE + 14, true, 4),
-  ('55555555-5555-5555-5555-555555550005', 'grand-opening-benefits', 'DASSOBA GRAND OPENING', '전 회원 대상 최대 20% 쿠폰팩 및 리뷰 포인트 2배 적립', 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?q=80&w=1600&auto=format&fit=crop', '/event/opening', 'campaign', CURRENT_DATE - 10, CURRENT_DATE + 60, true, 5)
+  ('55555555-5555-5555-5555-555555550001', 'spring-editorial-2026', '2026 SPRING EDITORIAL', '빛과 실루엣이 빚어낸 현대적 모더니즘의 새로운 정의', 'https://images.unsplash.com/photo-1541823709867-1b206113eafd?q=80&w=1600&auto=format&fit=crop', '/special/editorial', 'campaign', CURRENT_DATE - 5, CURRENT_DATE + 30, true, 1),
+  ('55555555-5555-5555-5555-555555550002', 'one-plus-one-special', 'DASSOBA 1+1 SPECIAL EVENT', '하나 가격으로 두 가지 스타일을 완성하는 스페셜 셀렉션', 'https://images.unsplash.com/photo-1612049621554-1df669d740df?q=80&w=1600&auto=format&fit=crop', '/1plus1', 'one_plus_one', CURRENT_DATE - 2, CURRENT_DATE + 20, true, 2),
+  ('55555555-5555-5555-5555-555555550003', 'the-noir-signature', 'THE NOIR SIGNATURE TAILORING', '감각적인 절개선과 섬세한 질감의 럭셔리 수트 캡슐 컬렉션', 'https://images.unsplash.com/photo-1591954426313-5e47d525428d?q=80&w=1600&auto=format&fit=crop', '/brands/the-noir', 'brand', CURRENT_DATE - 1, CURRENT_DATE + 40, true, 3),
+  ('55555555-5555-5555-5555-555555550004', 'minimal-knitwear-week', 'MINIMAL CASHMERE & SILK WEEK', '체온을 머금는 최상급 천연 원사 니트 특별전', 'https://images.unsplash.com/photo-1675408824613-27a7e7b8d475?q=80&w=1600&auto=format&fit=crop', '/special/knitwear', 'seasonal', CURRENT_DATE, CURRENT_DATE + 14, true, 4),
+  ('55555555-5555-5555-5555-555555550005', 'grand-opening-benefits', 'DASSOBA GRAND OPENING', '전 회원 대상 최대 20% 쿠폰팩 및 리뷰 포인트 2배 적립', 'https://images.unsplash.com/photo-1593484330639-614d0634f68f?q=80&w=1600&auto=format&fit=crop', '/event/opening', 'campaign', CURRENT_DATE - 10, CURRENT_DATE + 60, true, 5)
 ON CONFLICT (slug) DO NOTHING;
 
 -- 7. Popups
 INSERT INTO popups (id, title, desktop_image_url, link_url, start_datetime, end_datetime, priority, is_active)
 VALUES
-  ('66666666-6666-6666-6666-666666660001', '봄 신상품 론칭 기념 15% 쿠폰팩 증정', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop', '/event', NOW() - INTERVAL '1 day', NOW() + INTERVAL '14 days', 1, true)
+  ('66666666-6666-6666-6666-666666660001', '봄 신상품 론칭 기념 15% 쿠폰팩 증정', 'https://images.unsplash.com/photo-1541823709867-1b206113eafd?q=80&w=800&auto=format&fit=crop', '/event', NOW() - INTERVAL '1 day', NOW() + INTERVAL '14 days', 1, true)
 ON CONFLICT (id) DO NOTHING;
 
 -- 8. Suppliers

@@ -14,7 +14,7 @@ export const AdminEventsPage: React.FC = () => {
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [imageUrl, setImageUrl] = useState(
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1600&auto=format&fit=crop'
+    'https://images.unsplash.com/photo-1541823709867-1b206113eafd?q=80&w=1600&auto=format&fit=crop'
   );
   const [linkUrl, setLinkUrl] = useState('/category/women');
   const [startDate, setStartDate] = useState('2026-10-06');

@@ -25,7 +25,7 @@ export const AdminProductsPage: React.FC = () => {
   const [isNew, setIsNew] = useState(true);
   const [isBest, setIsBest] = useState(false);
   const [primaryImage, setPrimaryImage] = useState(
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000&auto=format&fit=crop'
+    'https://images.unsplash.com/photo-1541823709867-1b206113eafd?q=80&w=1000&auto=format&fit=crop'
   );
   const [description, setDescription] = useState('');
 

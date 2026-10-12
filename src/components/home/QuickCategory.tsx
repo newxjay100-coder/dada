@@ -6,17 +6,17 @@ const QUICK_ITEMS = [
   {
     name: '여성',
     path: '/category/women',
-    image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1541823709867-1b206113eafd?q=80&w=300&auto=format&fit=crop',
   },
   {
     name: '남성',
     path: '/category/men',
-    image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=300&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1591954426313-5e47d525428d?q=80&w=300&auto=format&fit=crop',
   },
   {
     name: '키즈',
     path: '/category/kids',
-    image: 'https://images.unsplash.com/photo-1519457431-44ccd64a579b?q=80&w=300&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1635061842938-9d0568bd20f8?q=80&w=300&auto=format&fit=crop',
   },
   {
     name: '잡화',
