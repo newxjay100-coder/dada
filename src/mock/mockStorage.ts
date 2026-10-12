@@ -44,6 +44,7 @@ const STORAGE_KEYS = {
   CURRENT_USER: 'dassoba_current_user',
   CART: 'dassoba_cart',
   WISHLIST: 'dassoba_wishlist',
+  CREDENTIALS: 'dassoba_auth_credentials',
 };
 
 function getStorage<T>(key: string, fallback: T): T {
@@ -262,6 +263,61 @@ export const MockCouponStore = {
       item.order_id = orderId;
       setStorage(STORAGE_KEYS.USER_COUPONS, list);
     }
+  },
+  addCouponToUser: (userCoupon: Omit<UserCoupon, 'id'>): UserCoupon => {
+    initMockStorage();
+    const list = getStorage<UserCoupon[]>(STORAGE_KEYS.USER_COUPONS, INITIAL_USER_COUPONS);
+    const item: UserCoupon = {
+      ...userCoupon,
+      id: `uc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    };
+    list.unshift(item);
+    setStorage(STORAGE_KEYS.USER_COUPONS, list);
+    return item;
+  },
+};
+
+// Auth & Credentials API
+export const MockAuthStore = {
+  getCredentials: (): Record<string, string> => {
+    try {
+      const item = localStorage.getItem(STORAGE_KEYS.CREDENTIALS);
+      return item
+        ? JSON.parse(item)
+        : {
+            admin: 'password123',
+            'admin@dassoba.kr': 'password123',
+            vipuser: 'password123',
+            'vip@dassoba.kr': 'password123',
+            user: 'password123',
+            'user@dassoba.kr': 'password123',
+          };
+    } catch {
+      return {};
+    }
+  },
+  saveCredential: (loginId: string, email: string, password: string): void => {
+    const creds = MockAuthStore.getCredentials();
+    creds[loginId.toLowerCase()] = password;
+    creds[email.toLowerCase()] = password;
+    localStorage.setItem(STORAGE_KEYS.CREDENTIALS, JSON.stringify(creds));
+  },
+  verifyPassword: (loginIdOrEmail: string, password: string): boolean => {
+    const creds = MockAuthStore.getCredentials();
+    const key = loginIdOrEmail.toLowerCase();
+    if (creds[key]) {
+      return creds[key] === password;
+    }
+    // If user is registered in profiles, check password length or default demo password
+    return password === 'password123' || password.length >= 4;
+  },
+  isLoginIdTaken: (loginId: string): boolean => {
+    const profiles = MockProfileStore.getAll();
+    return profiles.some((p) => p.login_id.toLowerCase() === loginId.trim().toLowerCase());
+  },
+  isEmailTaken: (email: string): boolean => {
+    const profiles = MockProfileStore.getAll();
+    return profiles.some((p) => p.email.toLowerCase() === email.trim().toLowerCase());
   },
 };
 

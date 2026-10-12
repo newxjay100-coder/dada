@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Profile, MemberGradeCode, UserRole } from '@/types/database.types';
-import { MockProfileStore } from '@/mock/mockStorage';
+import {
+  MockProfileStore,
+  MockPointStore,
+  MockCouponStore,
+  MockAuthStore,
+} from '@/mock/mockStorage';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export interface SignupInput {
@@ -97,6 +102,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
 
       if (matched) {
+        // Verify password
+        const isValid = MockAuthStore.verifyPassword(loginIdOrEmail, pass);
+        if (!isValid) {
+          setIsLoading(false);
+          return { success: false, message: '비밀번호가 일치하지 않습니다. 다시 확인해 주세요.' };
+        }
+
         setUser(matched);
         MockProfileStore.setCurrentUser(matched);
         setIsLoading(false);
@@ -104,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // If logging in with admin credentials
-      if (loginIdOrEmail === 'admin') {
+      if (loginIdOrEmail.toLowerCase() === 'admin') {
         const adminProf = profiles.find((p) => p.role === 'admin') || {
           id: 'u-admin',
           login_id: 'admin',
@@ -124,24 +136,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: true };
       }
 
-      // Fallback create demo user
-      const newMockUser: Profile = {
-        id: `u-${Date.now()}`,
-        login_id: loginIdOrEmail.includes('@') ? loginIdOrEmail.split('@')[0] : loginIdOrEmail,
-        email: loginIdOrEmail.includes('@') ? loginIdOrEmail : `${loginIdOrEmail}@dassoba.kr`,
-        name: loginIdOrEmail,
-        member_grade: 'BRONZE',
-        role: 'customer',
-        points_balance: 5000,
-        status: 'active',
-        marketing_consent: true,
-        terms_consent: true,
-        created_at: new Date().toISOString(),
-      };
-      setUser(newMockUser);
-      MockProfileStore.setCurrentUser(newMockUser);
+      // If user is not found
       setIsLoading(false);
-      return { success: true };
+      return { success: false, message: '등록되지 않은 아이디 또는 이메일입니다. 회원가입 후 이용해 주세요.' };
     } catch (err: any) {
       setIsLoading(false);
       return { success: false, message: err.message || '로그인에 실패했습니다.' };
@@ -152,6 +149,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const isAdminAccount = input.role === 'admin';
+
+      // Check duplicated login_id
+      if (MockAuthStore.isLoginIdTaken(input.login_id)) {
+        setIsLoading(false);
+        return { success: false, message: '이미 가입된 아이디입니다. 다른 아이디를 입력해 주세요.' };
+      }
+
+      // Check duplicated email
+      if (MockAuthStore.isEmailTaken(input.email)) {
+        setIsLoading(false);
+        return { success: false, message: '이미 등록된 이메일 주소입니다. 다른 이메일을 입력해 주세요.' };
+      }
 
       if (isAdminAccount && input.admin_code) {
         const trimmedCode = input.admin_code.trim().toUpperCase();
@@ -166,8 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const newProfile: Profile = {
         id: isAdminAccount ? `admin-${Date.now()}` : `u-${Date.now()}`,
-        login_id: input.login_id,
-        email: input.email,
+        login_id: input.login_id.trim(),
+        email: input.email.trim(),
         name: isAdminAccount && input.department ? `${input.name} (${input.department})` : input.name,
         phone: input.phone || '010-0000-0000',
         birthday: input.birthday,
@@ -180,6 +189,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         terms_consent: Boolean(input.terms_consent),
         created_at: new Date().toISOString(),
       };
+
+      // Save credentials for authentication
+      if (input.password) {
+        MockAuthStore.saveCredential(newProfile.login_id, newProfile.email, input.password);
+      }
+
+      // Record point transaction in ledger
+      MockPointStore.addTransaction({
+        user_id: newProfile.id,
+        transaction_type: isAdminAccount ? 'admin_adjustment' : 'signup',
+        amount: newProfile.points_balance,
+        description: isAdminAccount ? '관리자 계정 초기 운영 포인트 지급' : '신규 회원가입 웰컴 적립금 지급',
+      });
+
+      // Issue welcome coupon for customers
+      if (!isAdminAccount) {
+        MockCouponStore.addCouponToUser({
+          user_id: newProfile.id,
+          coupon_id: 'c-01',
+          is_used: false,
+          issued_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+      }
 
       if (isSupabaseConfigured && input.password) {
         await supabase.auth.signUp({
