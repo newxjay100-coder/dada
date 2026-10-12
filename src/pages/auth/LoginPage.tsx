@@ -21,8 +21,20 @@ export const LoginPage: React.FC = () => {
     setIsSubmitting(false);
 
     if (res.success) {
-      showToast('성공적으로 로그인되었습니다.', 'success');
-      navigate('/mypage');
+      if (loginIdOrEmail.toLowerCase() === 'admin') {
+        showToast('관리자 계정으로 로그인되었습니다.', 'success');
+        navigate('/admin');
+      } else {
+        const storedUser = localStorage.getItem('dassoba_current_user');
+        const parsed = storedUser ? JSON.parse(storedUser) : null;
+        if (parsed?.role === 'admin') {
+          showToast('관리자 계정으로 로그인되었습니다.', 'success');
+          navigate('/admin');
+        } else {
+          showToast('성공적으로 로그인되었습니다.', 'success');
+          navigate('/mypage');
+        }
+      }
     } else {
       showToast(res.message || '로그인에 실패했습니다.', 'error');
     }
@@ -116,7 +128,7 @@ export const LoginPage: React.FC = () => {
             </Link>
             <span>•</span>
             <Link to="/auth/register" className="text-[#721b29] font-bold hover:underline">
-              회원가입
+              회원가입 (일반/관리자)
             </Link>
           </div>
 

@@ -13,6 +13,9 @@ export interface SignupInput {
   gender?: string;
   marketing_consent?: boolean;
   terms_consent?: boolean;
+  role?: UserRole;
+  admin_code?: string;
+  department?: string;
 }
 
 interface AuthContextType {
@@ -148,17 +151,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (input: SignupInput) => {
     setIsLoading(true);
     try {
+      const isAdminAccount = input.role === 'admin';
+
+      if (isAdminAccount && input.admin_code) {
+        const trimmedCode = input.admin_code.trim().toUpperCase();
+        if (trimmedCode !== 'DASSOBA2026' && trimmedCode !== 'ADMIN') {
+          setIsLoading(false);
+          return {
+            success: false,
+            message: '관리자 보안 인증 코드가 올바르지 않습니다. (인증 힌트: DASSOBA2026)',
+          };
+        }
+      }
+
       const newProfile: Profile = {
-        id: `u-${Date.now()}`,
+        id: isAdminAccount ? `admin-${Date.now()}` : `u-${Date.now()}`,
         login_id: input.login_id,
         email: input.email,
-        name: input.name,
+        name: isAdminAccount && input.department ? `${input.name} (${input.department})` : input.name,
         phone: input.phone || '010-0000-0000',
         birthday: input.birthday,
         gender: input.gender,
-        member_grade: 'BRONZE',
-        role: 'customer',
-        points_balance: 5000, // 5,000 welcome bonus points
+        member_grade: isAdminAccount ? 'VVIP' : 'BRONZE',
+        role: isAdminAccount ? 'admin' : 'customer',
+        points_balance: isAdminAccount ? 50000 : 5000, // 50,000 for admin, 5,000 for customer
         status: 'active',
         marketing_consent: Boolean(input.marketing_consent),
         terms_consent: Boolean(input.terms_consent),
@@ -173,6 +189,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             data: {
               login_id: input.login_id,
               name: input.name,
+              role: newProfile.role,
+              department: input.department,
             },
           },
         });
