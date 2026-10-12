@@ -67,6 +67,7 @@ import { AdminMaterialsPage } from '@/pages/admin/AdminMaterialsPage';
 import { AdminTaxDocumentsPage } from '@/pages/admin/AdminTaxDocumentsPage';
 import { AdminDeliveryPage } from '@/pages/admin/AdminDeliveryPage';
 import { AdminEventsPage } from '@/pages/admin/AdminEventsPage';
+import { AdminSupabaseCenterPage } from '@/pages/admin/AdminSupabaseCenterPage';
 
 /**
  * ScrollToTop helper: scrolls smoothly to top on route change
@@ -185,6 +186,7 @@ export function App() {
                 {/* 2. Admin ERP Backoffice Routes */}
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<AdminDashboardPage />} />
+                  <Route path="supabase" element={<AdminSupabaseCenterPage />} />
                   <Route path="members" element={<AdminMembersPage />} />
                   <Route path="products" element={<AdminProductsPage />} />
                   <Route path="orders" element={<AdminOrdersPage />} />

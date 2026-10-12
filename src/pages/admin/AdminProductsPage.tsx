@@ -1,17 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product, ProductVariant } from '@/types/database.types';
-import { MockProductStore } from '@/mock/mockStorage';
+import { api } from '@/services/api';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { INITIAL_BRANDS, INITIAL_CATEGORIES } from '@/mock/seedProducts';
 import { useToast } from '@/context/ToastContext';
 import { formatPrice } from '@/lib/utils';
-import { Plus, Edit3, Trash2, Search, Check, Percent } from 'lucide-react';
+import { Plus, Edit3, Trash2, Search, Check, Percent, Cloud, UploadCloud } from 'lucide-react';
+import { ImageUploadField } from '@/components/common/ImageUploadField';
+import { Link } from 'react-router-dom';
 
 export const AdminProductsPage: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>(() => MockProductStore.getAll());
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { showToast } = useToast();
+
+  const loadProducts = async () => {
+    setIsLoading(true);
+    try {
+      const data = await api.getProducts();
+      setProducts(data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
   // Form states
   const [sku, setSku] = useState('');
@@ -37,6 +55,7 @@ export const AdminProductsPage: React.FC = () => {
     setRegularPrice(129000);
     setSalePrice(109000);
     setIsOnePlusOne(false);
+    setPrimaryImage('https://images.unsplash.com/photo-1541823709867-1b206113eafd?q=80&w=1000&auto=format&fit=crop');
     setDescription('');
     setShowModal(true);
   };
@@ -58,15 +77,15 @@ export const AdminProductsPage: React.FC = () => {
     setShowModal(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('정말로 이 상품을 삭제하시겠습니까?')) {
-      MockProductStore.delete(id);
-      setProducts(MockProductStore.getAll());
-      showToast('상품이 삭제되었습니다.', 'info');
+  const handleDelete = async (id: string) => {
+    if (window.confirm('정말로 이 상품을 삭제하시겠습니까? Supabase 클라우드에서도 즉시 삭제됩니다.')) {
+      await api.deleteProduct(id);
+      await loadProducts();
+      showToast('상품이 삭제되었습니다 (Supabase 동기화 완료).', 'info');
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const discount = Math.round(((regularPrice - salePrice) / regularPrice) * 100);
 
@@ -108,10 +127,15 @@ export const AdminProductsPage: React.FC = () => {
       ],
     };
 
-    MockProductStore.save(saved);
-    setProducts(MockProductStore.getAll());
+    await api.saveProduct(saved);
+    await loadProducts();
     setShowModal(false);
-    showToast(editingProduct ? '상품이 수정되었습니다.' : '신규 상품이 등록되었습니다.', 'success');
+    showToast(
+      editingProduct
+        ? '상품이 수정되어 Supabase에 실시간 반영되었습니다.'
+        : '신규 상품이 등록되어 Supabase에 실시간 업로드되었습니다.',
+      'success'
+    );
   };
 
   const filtered = products.filter((p) => {
@@ -133,12 +157,21 @@ export const AdminProductsPage: React.FC = () => {
             SKU 등록, 판매가 및 원가 설정, 1+1 기획전 지정, 재고 옵션 관리
           </p>
         </div>
-        <button
-          onClick={handleOpenNew}
-          className="px-4 py-2.5 bg-[#721b29] hover:bg-[#8e2233] text-white font-bold text-xs uppercase flex items-center gap-1.5 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> 신규 상품 등록
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/admin/supabase"
+            className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-cyan-300 font-mono text-xs flex items-center gap-1.5 border border-cyan-500/30 rounded"
+          >
+            <Cloud className="w-3.5 h-3.5" />
+            <span>{isSupabaseConfigured ? '⚡ Supabase 클라우드 연동 ON' : 'Supabase 연결 설정'}</span>
+          </Link>
+          <button
+            onClick={handleOpenNew}
+            className="px-4 py-2.5 bg-[#721b29] hover:bg-[#8e2233] text-white font-bold text-xs uppercase flex items-center gap-1.5 transition-colors"
+          >
+            <Plus className="w-4 h-4" /> 신규 상품 등록
+          </button>
+        </div>
       </div>
 
       {/* Search Toolbar */}
@@ -312,16 +345,12 @@ export const AdminProductsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-neutral-400 mb-1">대표 이미지 URL</label>
-                <input
-                  type="text"
-                  required
-                  value={primaryImage}
-                  onChange={(e) => setPrimaryImage(e.target.value)}
-                  className="w-full bg-neutral-900 border border-neutral-700 p-2 text-white font-mono text-[11px]"
-                />
-              </div>
+              <ImageUploadField
+                value={primaryImage}
+                onChange={setPrimaryImage}
+                bucket="product-images"
+                label="대표 상품 이미지 업로드"
+              />
 
               <div>
                 <label className="block text-neutral-400 mb-1">상품 에디토리얼 설명</label>

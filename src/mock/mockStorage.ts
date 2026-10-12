@@ -349,6 +349,33 @@ export const MockProfileStore = {
     }
     return profile;
   },
+  delete: (id: string): void => {
+    const list = MockProfileStore.getAll().filter((p) => p.id !== id);
+    setStorage(STORAGE_KEYS.PROFILES, list);
+  },
+};
+
+// Events API
+export const MockEventStore = {
+  getAll: (): EventItem[] => {
+    initMockStorage();
+    return getStorage<EventItem[]>(STORAGE_KEYS.EVENTS, INITIAL_EVENTS);
+  },
+  save: (event: EventItem): EventItem => {
+    const list = MockEventStore.getAll();
+    const index = list.findIndex((e) => e.id === event.id);
+    if (index >= 0) {
+      list[index] = event;
+    } else {
+      list.unshift(event);
+    }
+    setStorage(STORAGE_KEYS.EVENTS, list);
+    return event;
+  },
+  delete: (id: string): void => {
+    const list = MockEventStore.getAll().filter((e) => e.id !== id);
+    setStorage(STORAGE_KEYS.EVENTS, list);
+  },
 };
 
 // Posts API

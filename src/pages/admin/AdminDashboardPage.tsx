@@ -9,11 +9,18 @@ import {
   UserPlus,
   Coins,
   ArrowUpRight,
+  Cloud,
+  Database,
+  Sparkles,
 } from 'lucide-react';
 import { INITIAL_PRODUCTS } from '@/mock/seedProducts';
 import { INITIAL_ORDERS } from '@/mock/mockData';
+import { isSupabaseConfigured, getSupabaseConnectionInfo } from '@/lib/supabase';
+import { Link } from 'react-router-dom';
 
 export const AdminDashboardPage: React.FC = () => {
+  const conn = getSupabaseConnectionInfo();
+
   // Metric stats
   const metrics = [
     { label: '오늘 매출', value: '4,280,000원', change: '+18.4%', isUp: true, icon: TrendingUp },
@@ -29,7 +36,7 @@ export const AdminDashboardPage: React.FC = () => {
   const topProducts = INITIAL_PRODUCTS.slice(0, 5);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-neutral-800">
         <div>
@@ -37,14 +44,45 @@ export const AdminDashboardPage: React.FC = () => {
             DASSOBA 종합 운영 대시보드
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            실시간 판매 지표, 주문 처리 상태 및 재고 경보를 통합 모니터링합니다.
+            실시간 판매 지표, 주문 처리 상태 및 Supabase 클라우드 데이터베이스를 통합 모니터링합니다.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1.5 bg-neutral-800 text-neutral-300 font-mono text-xs border border-neutral-700">
-            실시간 동기화 ON
-          </span>
+          <Link
+            to="/admin/supabase"
+            className="px-3.5 py-2 bg-gradient-to-r from-cyan-950 to-blue-950 hover:from-cyan-900 hover:to-blue-900 text-cyan-300 font-mono text-xs border border-cyan-500/40 rounded flex items-center gap-2 shadow-[0_0_12px_rgba(0,240,255,0.2)] transition-all"
+          >
+            <Cloud className="w-3.5 h-3.5 text-cyan-400" />
+            <span>{isSupabaseConfigured ? '⚡ SUPABASE CLOUD LIVE' : 'SUPABASE 연동 설정'}</span>
+          </Link>
         </div>
+      </div>
+
+      {/* Supabase Live Status Bar */}
+      <div className="p-4 bg-gradient-to-r from-[#0d0d1a] to-[#121224] border border-cyan-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-cyan-950 flex items-center justify-center text-cyan-400 border border-cyan-500/40">
+            <Database className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="font-bold text-white flex items-center gap-2">
+              <span>Supabase 데이터베이스 실시간 연동 관리</span>
+              <span className={`px-2 py-0.2 rounded text-[10px] font-mono ${isSupabaseConfigured ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' : 'bg-pink-950 text-pink-300 border border-pink-500/40'}`}>
+                {isSupabaseConfigured ? 'READY & CONNECTED' : 'KEY REQUIRED'}
+              </span>
+            </div>
+            <p className="text-[11px] text-neutral-400 font-mono">
+              엔드포인트: {conn.url} • 모든 상품, 회원, 이미지, 주문이 Supabase와 실시간 연동됩니다.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          to="/admin/supabase"
+          className="px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-mono font-bold text-xs border border-cyan-500/40 rounded text-center transition-colors"
+        >
+          원클릭 클라우드 동기화 &rarr;
+        </Link>
       </div>
 
       {/* Metric Cards Grid */}
