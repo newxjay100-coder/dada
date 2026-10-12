@@ -13,6 +13,8 @@ import { Footer } from '@/components/layout/Footer';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { FloatingChatbot } from '@/components/widgets/FloatingChatbot';
 import { KakaoFloatingButton } from '@/components/widgets/KakaoFloatingButton';
+import { MouseShadowFollower } from '@/components/common/MouseShadowFollower';
+import { BackgroundMusicPlayer } from '@/components/common/BackgroundMusicPlayer';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 
 // Storefront Core Pages
@@ -105,6 +107,8 @@ export function App() {
           <CartProvider>
             <WishlistProvider>
               <ScrollToTop />
+              <MouseShadowFollower />
+              <BackgroundMusicPlayer />
               <Routes>
                 {/* 1. Customer Storefront Routes */}
                 <Route element={<StoreLayout />}>
