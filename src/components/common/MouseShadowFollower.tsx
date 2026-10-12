@@ -80,39 +80,32 @@ export const MouseShadowFollower: React.FC = () => {
       }}
       aria-hidden="true"
     >
-      {/* 1. 마우스 끝 바로 아래의 입체 음영 그림자 (Core Depth Shadow) */}
+      {/* 마우스 끝을 자연스럽게 감싸는 순수 입체 그림자 (Pure Soft Depth Shadow) */}
       <div
-        className={`relative -top-2 -left-2 rounded-full transition-all duration-300 ${
-          isHoveringClickable ? 'scale-135' : 'scale-100'
+        className={`relative -top-4 -left-4 rounded-full transition-all duration-300 ${
+          isHoveringClickable ? 'scale-125' : 'scale-100'
         }`}
       >
-        {/* 부드러운 자연 음영 레이어 */}
+        {/* 1. 중심부 부드러운 입체 자연 음영 */}
         <div
-          className="w-10 h-10 rounded-full"
+          className="w-12 h-12 rounded-full"
           style={{
             background:
-              'radial-gradient(circle, rgba(17,17,17,0.32) 0%, rgba(114,27,41,0.20) 40%, rgba(0,0,0,0.06) 70%, transparent 100%)',
+              'radial-gradient(circle, rgba(17,17,17,0.25) 0%, rgba(114,27,41,0.14) 40%, rgba(0,0,0,0.05) 70%, transparent 100%)',
             filter: 'blur(8px)',
             transform: 'translate(4px, 4px)',
           }}
         />
 
-        {/* 바깥쪽으로 번지는 은은한 조명 오라 (Soft Outer Ambient Shadow) */}
+        {/* 2. 바깥쪽으로 은은하게 퍼지는 부드러운 앰비언트 섀도우 */}
         <div
-          className="absolute inset-0 w-16 h-16 -top-3 -left-3 rounded-full"
+          className="absolute inset-0 w-20 h-20 -top-4 -left-4 rounded-full"
           style={{
             background: isHoveringClickable
-              ? 'radial-gradient(circle, rgba(114,27,41,0.25) 0%, rgba(17,17,17,0.12) 50%, transparent 75%)'
-              : 'radial-gradient(circle, rgba(17,17,17,0.16) 0%, rgba(114,27,41,0.08) 50%, transparent 75%)',
-            filter: 'blur(16px)',
+              ? 'radial-gradient(circle, rgba(114,27,41,0.22) 0%, rgba(17,17,17,0.10) 50%, transparent 75%)'
+              : 'radial-gradient(circle, rgba(17,17,17,0.14) 0%, rgba(114,27,41,0.06) 50%, transparent 75%)',
+            filter: 'blur(18px)',
           }}
-        />
-
-        {/* 커서 포인트 미세 앵커 닷 (Subtle Precision Point) */}
-        <div
-          className={`absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-neutral-900/60 shadow-sm transition-transform duration-200 ${
-            isHoveringClickable ? 'scale-0' : 'scale-100'
-          }`}
         />
       </div>
     </div>
