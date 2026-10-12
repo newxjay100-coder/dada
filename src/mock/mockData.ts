@@ -87,7 +87,7 @@ export const INITIAL_EVENTS: EventItem[] = [
     slug: 'cyber-y3k-editorial-2026',
     title: 'CYBER STREET TECHWEAR // Y3K EDITORIAL',
     subtitle: '네온 그리드와 테크웨어의 독창적 믹스매치, 서울 펑키 스트리트 룩북',
-    banner_image_url: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?q=80&w=1600&auto=format&fit=crop',
+    banner_image_url: '/images/products/prod_31_metallic_parka.jpg',
     link_url: '/category/women',
     event_type: 'campaign',
     start_date: '2026-03-01',
@@ -126,7 +126,7 @@ export const INITIAL_EVENTS: EventItem[] = [
     slug: 'neo-seoul-metallic-week',
     title: 'NEO SEOUL ACID & METALLIC WEEK',
     subtitle: '홀로그램 메탈릭 패딩 & 에시드 그런지 와이드 카고 데님 익스클루시브 드롭',
-    banner_image_url: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?q=80&w=1600&auto=format&fit=crop',
+    banner_image_url: '/images/products/prod_19_cargo_pants.jpg',
     link_url: '/best',
     event_type: 'seasonal',
     start_date: '2026-03-01',
@@ -139,7 +139,7 @@ export const INITIAL_EVENTS: EventItem[] = [
     slug: 'grand-opening-2077',
     title: 'DASSOBA 2077 GRAND OPENING',
     subtitle: '사이버펑크 네온 시티의 감성을 담은 펑키 스트리트웨어 플래그십 오픈',
-    banner_image_url: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?q=80&w=1600&auto=format&fit=crop',
+    banner_image_url: '/images/products/prod_32_tech_anorak.jpg',
     link_url: '/events',
     event_type: 'campaign',
     start_date: '2026-03-01',
@@ -180,7 +180,7 @@ export const INITIAL_REVIEWS: Review[] = [
     points_awarded: 1000,
     admin_reply: '소중한 포토 리뷰 감사드립니다! 사이버 느와르의 크롭 텍티컬 실루엣을 완벽하게 소화해주셨네요. 앞으로도 멋진 2077 스타일링 기대하겠습니다 :)',
     admin_replied_at: '2026-10-03T11:00:00Z',
-    images: ['https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=600&auto=format&fit=crop'],
+    images: ['https://images.unsplash.com/photo-1551028719-00167b16eac5?q=80&w=1000&auto=format&fit=crop'],
     created_at: '2026-10-02T14:20:00Z',
   },
   {
@@ -200,7 +200,7 @@ export const INITIAL_REVIEWS: Review[] = [
     points_awarded: 1000,
     admin_reply: '정성스러운 사진과 함께 만족해주셔서 감사합니다! 펑키 데미지 니트의 루즈한 드롭 숄더 감성을 즐겨보세요.',
     admin_replied_at: '2026-10-04T09:30:00Z',
-    images: ['https://images.unsplash.com/photo-1529139574466-a303027c1d8b?q=80&w=600&auto=format&fit=crop'],
+    images: ['/images/products/prod_02_damage_knit.jpg'],
     created_at: '2026-10-03T18:10:00Z',
   },
   {
@@ -218,7 +218,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?q=80&w=600&auto=format&fit=crop'],
+    images: ['/images/products/prod_05_bomber_jacket.jpg'],
     created_at: '2026-10-01T20:00:00Z',
   },
   {
@@ -253,7 +253,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=600&auto=format&fit=crop'],
+    images: ['https://images.unsplash.com/photo-1603252109303-2751441dd157?q=80&w=1000&auto=format&fit=crop'],
     created_at: '2026-09-29T16:00:00Z',
   },
   {
@@ -271,7 +271,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=600&auto=format&fit=crop'],
+    images: ['https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=1000&auto=format&fit=crop'],
     created_at: '2026-10-03T12:00:00Z',
   },
   {
@@ -289,7 +289,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=600&auto=format&fit=crop'],
+    images: ['https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000&auto=format&fit=crop'],
     created_at: '2026-10-02T19:00:00Z',
   },
   {
@@ -307,7 +307,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80&w=600&auto=format&fit=crop'],
+    images: ['https://images.unsplash.com/photo-1544592444-7ed1193f5336?q=80&w=1000&auto=format&fit=crop'],
     created_at: '2026-09-28T14:00:00Z',
   },
   {
@@ -325,7 +325,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?q=80&w=600&auto=format&fit=crop'],
+    images: ['/images/products/prod_06_tech_blazer.jpg'],
     created_at: '2026-09-25T11:00:00Z',
   },
   {
@@ -343,7 +343,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1509967419530-da38b4704bc6?q=80&w=600&auto=format&fit=crop'],
+    images: ['/images/products/prod_31_metallic_parka.jpg'],
     created_at: '2026-10-04T15:00:00Z',
   },
   {
@@ -361,7 +361,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1576995853123-5a10305d93c0?q=80&w=600&auto=format&fit=crop'],
+    images: ['https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=1000&auto=format&fit=crop'],
     created_at: '2026-09-23T10:00:00Z',
   },
   {
@@ -379,7 +379,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1637498732306-dd1c392dbbb3?q=80&w=600&auto=format&fit=crop'],
+    images: ['https://images.unsplash.com/photo-1637498732306-dd1c392dbbb3?q=80&w=1000&auto=format&fit=crop'],
     created_at: '2026-10-04T12:00:00Z',
   },
   {
@@ -397,7 +397,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1634469875582-a0885fc2f589?q=80&w=600&auto=format&fit=crop'],
+    images: ['https://images.unsplash.com/photo-1521369909029-2afed882baee?q=80&w=1000&auto=format&fit=crop'],
     created_at: '2026-09-17T17:00:00Z',
   },
   {
@@ -432,7 +432,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?q=80&w=600&auto=format&fit=crop'],
+    images: ['/images/products/prod_32_tech_anorak.jpg'],
     created_at: '2026-09-29T18:00:00Z',
   },
   {
@@ -450,7 +450,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1574015974293-817f0ebebb74?q=80&w=600&auto=format&fit=crop'],
+    images: ['/images/products/prod_04_women_cargo.jpg'],
     created_at: '2026-10-04T13:00:00Z',
   },
   {
@@ -468,7 +468,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1516257984-b1b4d707412e?q=80&w=600&auto=format&fit=crop'],
+    images: ['/images/products/prod_25_funky_shirt.jpg'],
     created_at: '2026-10-05T10:00:00Z',
   },
   {
@@ -486,7 +486,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=600&auto=format&fit=crop'],
+    images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1000&auto=format&fit=crop'],
     created_at: '2026-09-20T14:00:00Z',
   },
   {
@@ -504,7 +504,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=600&auto=format&fit=crop'],
+    images: ['https://images.unsplash.com/photo-1581655353564-df123a1eb820?q=80&w=1000&auto=format&fit=crop'],
     created_at: '2026-09-27T16:00:00Z',
   },
   {
@@ -522,7 +522,7 @@ export const INITIAL_REVIEWS: Review[] = [
     is_verified: true,
     is_hidden: false,
     points_awarded: 1000,
-    images: ['https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=600&auto=format&fit=crop'],
+    images: ['https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=1000&auto=format&fit=crop'],
     created_at: '2026-09-30T15:00:00Z',
   },
 ];

@@ -35,16 +35,16 @@ import {
 } from './mockData';
 
 const STORAGE_KEYS = {
-  PRODUCTS: 'dassoba_v4_funky_products',
-  ORDERS: 'dassoba_v4_funky_orders',
-  REVIEWS: 'dassoba_v4_funky_reviews',
+  PRODUCTS: 'dassoba_v5_verified_apparel_products',
+  ORDERS: 'dassoba_v5_verified_apparel_orders',
+  REVIEWS: 'dassoba_v5_verified_apparel_reviews',
   PROFILES: 'dassoba_profiles',
   POINTS: 'dassoba_point_transactions',
   USER_COUPONS: 'dassoba_user_coupons',
-  POSTS: 'dassoba_v4_funky_posts',
+  POSTS: 'dassoba_v5_verified_apparel_posts',
   INQUIRIES: 'dassoba_inquiries',
-  EVENTS: 'dassoba_v4_funky_events',
-  POPUPS: 'dassoba_v4_funky_popups',
+  EVENTS: 'dassoba_v5_verified_apparel_events',
+  POPUPS: 'dassoba_v5_verified_apparel_popups',
   SUPPLIERS: 'dassoba_suppliers',
   MATERIALS: 'dassoba_materials',
   PURCHASE_ORDERS: 'dassoba_purchase_orders',
