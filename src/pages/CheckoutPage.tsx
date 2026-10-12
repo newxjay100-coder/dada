@@ -171,6 +171,16 @@ export const CheckoutPage: React.FC = () => {
 
       await api.createOrder(newOrder);
 
+      // Automatically create delivery record in Supabase deliveries table
+      await api.saveDelivery({
+        id: `sh-${newOrder.id}`,
+        order_id: newOrder.id,
+        carrier: 'CJ대한통운',
+        tracking_number: '',
+        shipment_status: 'ready',
+        memo: `주문 접수 및 상품 준비 (${orderNumber})`,
+      });
+
       // 4. Record point transaction ledger if points were used
       if (usedPoints > 0 && user?.id) {
         await api.addPointTransaction({

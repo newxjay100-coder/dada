@@ -8,6 +8,10 @@ import {
   MockProfileStore,
   MockPostStore,
   MockEventStore,
+  MockMaterialStore,
+  MockPurchaseOrderStore,
+  MockDeliveryStore,
+  MockTaxDocumentStore,
 } from '@/mock/mockStorage';
 import {
   Product,
@@ -19,7 +23,12 @@ import {
   Post,
   OrderStatus,
   EventItem,
+  Material,
+  PurchaseOrder,
+  Shipment,
+  TaxDocument,
 } from '@/types/database.types';
+import { uploadStaticImageToStorage } from './imageUploadService';
 
 export const api = {
   isLive: isSupabaseConfigured,
@@ -338,21 +347,318 @@ export const api = {
   },
 
   // ==========================================
-  // 7. BATCH CLOUD SYNC (Supabase 전체 동기화)
+  // 7. DELIVERIES (배송 및 운송장 관리)
+  // ==========================================
+  async getDeliveries(): Promise<Shipment[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('deliveries')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) return data as Shipment[];
+      } catch (e) {
+        console.warn('Supabase getDeliveries failed:', e);
+      }
+    }
+    return MockDeliveryStore.getAll();
+  },
+
+  async saveDelivery(delivery: Shipment): Promise<Shipment> {
+    MockDeliveryStore.save(delivery);
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('deliveries').upsert(delivery);
+        if (error) console.warn('Supabase saveDelivery error:', error);
+      } catch (e) {
+        console.warn('Supabase saveDelivery exception:', e);
+      }
+    }
+    return delivery;
+  },
+
+  async updateDeliveryTracking(
+    id: string,
+    trackingNumber: string,
+    status: Shipment['shipment_status'] = 'shipping'
+  ): Promise<Shipment | undefined> {
+    const updated = MockDeliveryStore.updateTracking(id, trackingNumber, status);
+    if (isSupabaseConfigured) {
+      try {
+        await supabase
+          .from('deliveries')
+          .update({
+            tracking_number: trackingNumber,
+            shipment_status: status,
+            shipped_at: new Date().toISOString(),
+          })
+          .eq('id', id);
+      } catch (e) {
+        console.warn('Supabase updateDeliveryTracking exception:', e);
+      }
+    }
+    return updated;
+  },
+
+  async deleteDelivery(id: string): Promise<boolean> {
+    MockDeliveryStore.delete(id);
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('deliveries').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Supabase deleteDelivery exception:', e);
+      }
+    }
+    return true;
+  },
+
+  // ==========================================
+  // 8. MATERIALS (원부자재 관리)
+  // ==========================================
+  async getMaterials(): Promise<Material[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('materials')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) return data as Material[];
+      } catch (e) {
+        console.warn('Supabase getMaterials failed:', e);
+      }
+    }
+    return MockMaterialStore.getAll();
+  },
+
+  async saveMaterial(material: Material): Promise<Material> {
+    MockMaterialStore.save(material);
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('materials').upsert(material);
+        if (error) console.warn('Supabase saveMaterial error:', error);
+      } catch (e) {
+        console.warn('Supabase saveMaterial exception:', e);
+      }
+    }
+    return material;
+  },
+
+  async deleteMaterial(id: string): Promise<boolean> {
+    MockMaterialStore.delete(id);
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('materials').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Supabase deleteMaterial exception:', e);
+      }
+    }
+    return true;
+  },
+
+  // ==========================================
+  // 9. PURCHASE ORDERS (발주 관리 PO)
+  // ==========================================
+  async getPurchaseOrders(): Promise<PurchaseOrder[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('purchase_orders')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) return data as PurchaseOrder[];
+      } catch (e) {
+        console.warn('Supabase getPurchaseOrders failed:', e);
+      }
+    }
+    return MockPurchaseOrderStore.getAll();
+  },
+
+  async savePurchaseOrder(po: PurchaseOrder): Promise<PurchaseOrder> {
+    MockPurchaseOrderStore.save(po);
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('purchase_orders').upsert(po);
+        if (error) console.warn('Supabase savePurchaseOrder error:', error);
+      } catch (e) {
+        console.warn('Supabase savePurchaseOrder exception:', e);
+      }
+    }
+    return po;
+  },
+
+  async updatePOStatus(
+    id: string,
+    status: PurchaseOrder['status']
+  ): Promise<PurchaseOrder | undefined> {
+    const updated = MockPurchaseOrderStore.updateStatus(id, status);
+    if (isSupabaseConfigured) {
+      try {
+        const updatePayload: any = { status };
+        if (status === 'completed') {
+          updatePayload.received_date = new Date().toISOString().split('T')[0];
+        }
+        await supabase.from('purchase_orders').update(updatePayload).eq('id', id);
+      } catch (e) {
+        console.warn('Supabase updatePOStatus exception:', e);
+      }
+    }
+    return updated;
+  },
+
+  async deletePurchaseOrder(id: string): Promise<boolean> {
+    MockPurchaseOrderStore.delete(id);
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('purchase_orders').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Supabase deletePurchaseOrder exception:', e);
+      }
+    }
+    return true;
+  },
+
+  // ==========================================
+  // 10. TAX DOCUMENTS (세금계산서 & 영수증)
+  // ==========================================
+  async getTaxDocuments(): Promise<TaxDocument[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('tax_documents')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) return data as TaxDocument[];
+      } catch (e) {
+        console.warn('Supabase getTaxDocuments failed:', e);
+      }
+    }
+    return MockTaxDocumentStore.getAll();
+  },
+
+  async saveTaxDocument(doc: TaxDocument): Promise<TaxDocument> {
+    MockTaxDocumentStore.save(doc);
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('tax_documents').upsert(doc);
+        if (error) console.warn('Supabase saveTaxDocument error:', error);
+      } catch (e) {
+        console.warn('Supabase saveTaxDocument exception:', e);
+      }
+    }
+    return doc;
+  },
+
+  async updateTaxDocumentStatus(
+    id: string,
+    status: TaxDocument['issue_status']
+  ): Promise<TaxDocument | undefined> {
+    const updated = MockTaxDocumentStore.updateStatus(id, status);
+    if (isSupabaseConfigured) {
+      try {
+        const payload: any = { issue_status: status };
+        if (status === 'issued') {
+          payload.issue_date = new Date().toISOString().split('T')[0];
+        }
+        await supabase.from('tax_documents').update(payload).eq('id', id);
+      } catch (e) {
+        console.warn('Supabase updateTaxDocumentStatus exception:', e);
+      }
+    }
+    return updated;
+  },
+
+  async deleteTaxDocument(id: string): Promise<boolean> {
+    MockTaxDocumentStore.delete(id);
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('tax_documents').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Supabase deleteTaxDocument exception:', e);
+      }
+    }
+    return true;
+  },
+
+  // ==========================================
+  // 11. ATTACHED PRODUCT & STORAGE UPLOAD
+  // ==========================================
+  async syncAttachedProductAndStorage(): Promise<{
+    success: boolean;
+    storageUrl?: string;
+    product?: Product;
+    error?: string;
+  }> {
+    try {
+      // 1. Upload local image to Supabase Storage 'products' bucket
+      const uploadResult = await uploadStaticImageToStorage(
+        '/images/products/cyber_street_2077_grand_opening.jpg',
+        'cyber_street_2077_grand_opening.jpg',
+        'products'
+      );
+
+      // 2. Fetch the cyber 2077 product from mock store
+      const cyberProduct = MockProductStore.getById('prod-cyber-2077');
+      if (cyberProduct) {
+        if (uploadResult.url) {
+          cyberProduct.primary_image = uploadResult.url;
+        }
+        await this.saveProduct(cyberProduct);
+      }
+
+      // 3. Also update event banner with new storage URL
+      const cyberEvent = MockEventStore.getAll().find((e) => e.id === 'ev-cyber-2077');
+      if (cyberEvent) {
+        if (uploadResult.url) {
+          cyberEvent.banner_image_url = uploadResult.url;
+        }
+        await this.saveEvent(cyberEvent);
+      }
+
+      return {
+        success: true,
+        storageUrl: uploadResult.url,
+        product: cyberProduct,
+      };
+    } catch (e: any) {
+      console.warn('syncAttachedProductAndStorage failed:', e);
+      return { success: false, error: e.message };
+    }
+  },
+
+  // ==========================================
+  // 12. BATCH CLOUD SYNC (Supabase 전체 동기화)
   // ==========================================
   async syncAllToSupabase(): Promise<{
     success: boolean;
-    syncedCounts: { products: number; profiles: number; events: number; orders: number };
+    syncedCounts: {
+      products: number;
+      profiles: number;
+      events: number;
+      orders: number;
+      deliveries: number;
+      materials: number;
+      purchaseOrders: number;
+      taxDocuments: number;
+    };
     errors: string[];
   }> {
     const errors: string[] = [];
-    const counts = { products: 0, profiles: 0, events: 0, orders: 0 };
+    const counts = {
+      products: 0,
+      profiles: 0,
+      events: 0,
+      orders: 0,
+      deliveries: 0,
+      materials: 0,
+      purchaseOrders: 0,
+      taxDocuments: 0,
+    };
 
     if (!isSupabaseConfigured) {
       return {
         success: false,
         syncedCounts: counts,
-        errors: ['Supabase Anon Key가 설정되지 않았습니다.'],
+        errors: ['Supabase Project URL 및 Anon Key가 설정되지 않았습니다.'],
       };
     }
 
@@ -361,11 +667,11 @@ export const api = {
       const profiles = MockProfileStore.getAll();
       if (profiles.length > 0) {
         const { error } = await supabase.from('profiles').upsert(profiles);
-        if (error) errors.push(`Profiles sync error: ${error.message}`);
+        if (error) errors.push(`Profiles: ${error.message}`);
         else counts.profiles = profiles.length;
       }
     } catch (e: any) {
-      errors.push(`Profiles exception: ${e.message}`);
+      errors.push(`Profiles: ${e.message}`);
     }
 
     // 2. Sync Products & Variants
@@ -384,7 +690,7 @@ export const api = {
         }
       }
     } catch (e: any) {
-      errors.push(`Products exception: ${e.message}`);
+      errors.push(`Products: ${e.message}`);
     }
 
     // 3. Sync Events
@@ -392,14 +698,14 @@ export const api = {
       const events = MockEventStore.getAll();
       if (events.length > 0) {
         const { error } = await supabase.from('events').upsert(events);
-        if (error) errors.push(`Events sync error: ${error.message}`);
+        if (error) errors.push(`Events: ${error.message}`);
         else counts.events = events.length;
       }
     } catch (e: any) {
-      errors.push(`Events exception: ${e.message}`);
+      errors.push(`Events: ${e.message}`);
     }
 
-    // 4. Sync Orders
+    // 4. Sync Orders & Order Items
     try {
       const orders = MockOrderStore.getAll();
       for (const o of orders) {
@@ -415,7 +721,55 @@ export const api = {
         }
       }
     } catch (e: any) {
-      errors.push(`Orders exception: ${e.message}`);
+      errors.push(`Orders: ${e.message}`);
+    }
+
+    // 5. Sync Deliveries
+    try {
+      const deliveries = MockDeliveryStore.getAll();
+      if (deliveries.length > 0) {
+        const { error } = await supabase.from('deliveries').upsert(deliveries);
+        if (error) errors.push(`Deliveries: ${error.message}`);
+        else counts.deliveries = deliveries.length;
+      }
+    } catch (e: any) {
+      errors.push(`Deliveries: ${e.message}`);
+    }
+
+    // 6. Sync Materials
+    try {
+      const materials = MockMaterialStore.getAll();
+      if (materials.length > 0) {
+        const { error } = await supabase.from('materials').upsert(materials);
+        if (error) errors.push(`Materials: ${error.message}`);
+        else counts.materials = materials.length;
+      }
+    } catch (e: any) {
+      errors.push(`Materials: ${e.message}`);
+    }
+
+    // 7. Sync Purchase Orders
+    try {
+      const poList = MockPurchaseOrderStore.getAll();
+      if (poList.length > 0) {
+        const { error } = await supabase.from('purchase_orders').upsert(poList);
+        if (error) errors.push(`PurchaseOrders: ${error.message}`);
+        else counts.purchaseOrders = poList.length;
+      }
+    } catch (e: any) {
+      errors.push(`PurchaseOrders: ${e.message}`);
+    }
+
+    // 8. Sync Tax Documents
+    try {
+      const taxDocs = MockTaxDocumentStore.getAll();
+      if (taxDocs.length > 0) {
+        const { error } = await supabase.from('tax_documents').upsert(taxDocs);
+        if (error) errors.push(`TaxDocuments: ${error.message}`);
+        else counts.taxDocuments = taxDocs.length;
+      }
+    } catch (e: any) {
+      errors.push(`TaxDocuments: ${e.message}`);
     }
 
     return {
@@ -427,11 +781,29 @@ export const api = {
 
   async syncAllFromSupabase(): Promise<{
     success: boolean;
-    pulledCounts: { products: number; profiles: number; events: number };
+    pulledCounts: {
+      products: number;
+      profiles: number;
+      events: number;
+      orders: number;
+      deliveries: number;
+      materials: number;
+      purchaseOrders: number;
+      taxDocuments: number;
+    };
     errors: string[];
   }> {
     const errors: string[] = [];
-    const counts = { products: 0, profiles: 0, events: 0 };
+    const counts = {
+      products: 0,
+      profiles: 0,
+      events: 0,
+      orders: 0,
+      deliveries: 0,
+      materials: 0,
+      purchaseOrders: 0,
+      taxDocuments: 0,
+    };
 
     if (!isSupabaseConfigured) {
       return {
@@ -470,6 +842,51 @@ export const api = {
         }
         counts.events = evts.length;
       }
+
+      // Pull orders
+      const { data: ords } = await supabase.from('orders').select('*, items:order_items(*)');
+      if (ords && ords.length > 0) {
+        for (const o of ords) {
+          MockOrderStore.save(o as Order);
+        }
+        counts.orders = ords.length;
+      }
+
+      // Pull deliveries
+      const { data: dels } = await supabase.from('deliveries').select('*');
+      if (dels && dels.length > 0) {
+        for (const d of dels) {
+          MockDeliveryStore.save(d as Shipment);
+        }
+        counts.deliveries = dels.length;
+      }
+
+      // Pull materials
+      const { data: mats } = await supabase.from('materials').select('*');
+      if (mats && mats.length > 0) {
+        for (const m of mats) {
+          MockMaterialStore.save(m as Material);
+        }
+        counts.materials = mats.length;
+      }
+
+      // Pull purchase orders
+      const { data: pos } = await supabase.from('purchase_orders').select('*');
+      if (pos && pos.length > 0) {
+        for (const p of pos) {
+          MockPurchaseOrderStore.save(p as PurchaseOrder);
+        }
+        counts.purchaseOrders = pos.length;
+      }
+
+      // Pull tax documents
+      const { data: taxes } = await supabase.from('tax_documents').select('*');
+      if (taxes && taxes.length > 0) {
+        for (const t of taxes) {
+          MockTaxDocumentStore.save(t as TaxDocument);
+        }
+        counts.taxDocuments = taxes.length;
+      }
     } catch (e: any) {
       errors.push(`Pull exception: ${e.message}`);
     }
@@ -481,3 +898,4 @@ export const api = {
     };
   },
 };
+

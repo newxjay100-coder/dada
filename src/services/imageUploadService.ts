@@ -47,41 +47,51 @@ async function fileToDataUrl(file: File, maxWidth = 1400, quality = 0.88): Promi
   });
 }
 
+export type StorageBucketName = 'products' | 'product-images' | 'banners' | 'avatars';
+
 /**
  * Uploads an image file to Supabase Storage, with automatic seamless fallback to DataURL
  */
 export async function uploadImageFile(
   file: File,
-  bucket: 'product-images' | 'banners' | 'avatars' = 'product-images'
+  bucket: StorageBucketName = 'products'
 ): Promise<ImageUploadResult> {
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
   const filePath = `${Date.now()}-${sanitizedName}`;
 
   // 1. Try Supabase Storage if configured
   if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true,
-        });
+    // Try primary bucket first, then alternative if it fails
+    const bucketsToTry: StorageBucketName[] =
+      bucket === 'products'
+        ? ['products', 'product-images']
+        : bucket === 'product-images'
+        ? ['product-images', 'products']
+        : [bucket];
 
-      if (!error && data?.path) {
-        const { data: pubData } = supabase.storage.from(bucket).getPublicUrl(data.path);
-        if (pubData?.publicUrl) {
-          return {
-            url: pubData.publicUrl,
-            source: 'supabase_storage',
-            fileName: file.name,
-            fileSizeBytes: file.size,
-          };
+    for (const b of bucketsToTry) {
+      try {
+        const { data, error } = await supabase.storage
+          .from(b)
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true,
+          });
+
+        if (!error && data?.path) {
+          const { data: pubData } = supabase.storage.from(b).getPublicUrl(data.path);
+          if (pubData?.publicUrl) {
+            return {
+              url: pubData.publicUrl,
+              source: 'supabase_storage',
+              fileName: file.name,
+              fileSizeBytes: file.size,
+            };
+          }
         }
-      } else {
-        console.warn('Supabase storage upload returned error, falling back to DataURL:', error);
+      } catch (err) {
+        console.warn(`Supabase storage upload attempt to bucket '${b}' failed:`, err);
       }
-    } catch (err) {
-      console.warn('Supabase storage upload exception, falling back to DataURL:', err);
     }
   }
 
@@ -94,3 +104,28 @@ export async function uploadImageFile(
     fileSizeBytes: file.size,
   };
 }
+
+/**
+ * Uploads a local/static image file (by URL/path) into Supabase Storage bucket
+ */
+export async function uploadStaticImageToStorage(
+  imageUrl: string,
+  targetFileName: string,
+  bucket: StorageBucketName = 'products'
+): Promise<ImageUploadResult> {
+  try {
+    const res = await fetch(imageUrl);
+    const blob = await res.blob();
+    const file = new File([blob], targetFileName, { type: blob.type || 'image/jpeg' });
+    return await uploadImageFile(file, bucket);
+  } catch (err) {
+    console.warn(`Failed to fetch static image ${imageUrl} for upload:`, err);
+    return {
+      url: imageUrl,
+      source: 'base64_data_url',
+      fileName: targetFileName,
+      fileSizeBytes: 0,
+    };
+  }
+}
+

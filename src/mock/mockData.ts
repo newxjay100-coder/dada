@@ -10,6 +10,9 @@ import {
   Order,
   PointTransaction,
   UserCoupon,
+  PurchaseOrder,
+  TaxDocument,
+  Shipment,
 } from '@/types/database.types';
 
 export const INITIAL_COUPONS: Coupon[] = [
@@ -66,6 +69,19 @@ export const INITIAL_COUPONS: Coupon[] = [
 ];
 
 export const INITIAL_EVENTS: EventItem[] = [
+  {
+    id: 'ev-cyber-2077',
+    slug: 'cyber-street-2077-opening',
+    title: 'DASSOBA GRAND OPENING CELEBRATION',
+    subtitle: '전 회원 대상 최대 20% 쿠폰팩 및 리뷰 포인트 2배 적립 // CYBER_STREET_2077',
+    banner_image_url: '/images/products/cyber_street_2077_grand_opening.jpg',
+    link_url: '/product/prod-cyber-2077',
+    event_type: 'campaign',
+    start_date: '2026-10-12',
+    end_date: '2026-11-30',
+    is_active: true,
+    display_order: 1,
+  },
   {
     id: 'ev-01',
     slug: 'spring-editorial-2026',
@@ -848,3 +864,86 @@ export const INITIAL_MATERIALS: Material[] = [
     memo: '블라우스 및 원피스용 최고급 원단',
   },
 ];
+
+export const INITIAL_PURCHASE_ORDERS: PurchaseOrder[] = [
+  {
+    id: 'po-01',
+    po_number: 'PO-20261001-01',
+    supplier_id: 'sup-01',
+    supplier_name: '(주)느와르 어패럴',
+    status: 'ordered',
+    total_cost: 15400000,
+    requested_date: '2026-10-01',
+    expected_date: '2026-10-12',
+    items_count: 140,
+    memo: '테일러드 울 블레이저 2차 리오더 생산분 발주',
+    created_at: '2026-10-01T09:00:00Z',
+  },
+  {
+    id: 'po-02',
+    po_number: 'PO-20260925-02',
+    supplier_id: 'sup-02',
+    supplier_name: '(주)아틀리에 텍스타일',
+    status: 'completed',
+    total_cost: 22000000,
+    requested_date: '2026-09-25',
+    expected_date: '2026-10-03',
+    received_date: '2026-10-03',
+    items_count: 200,
+    memo: '1+1 캐시미어 하프넥 니트 초도 생산 원사 및 완제품 입고 완료',
+    created_at: '2026-09-25T11:00:00Z',
+  },
+];
+
+export const INITIAL_DELIVERIES: Shipment[] = [
+  {
+    id: 'sh-01',
+    order_id: 'ord-02',
+    carrier: 'CJ대한통운',
+    tracking_number: '6891029381',
+    shipment_status: 'shipping',
+    shipped_at: '2026-10-05T14:00:00Z',
+    memo: '배송 출고 완료 (ORD-20261005-94821)',
+  },
+  {
+    id: 'sh-02',
+    order_id: 'ord-01',
+    carrier: 'CJ대한통운',
+    tracking_number: '6891011244',
+    shipment_status: 'delivered',
+    shipped_at: '2026-10-02T16:30:00Z',
+    delivered_at: '2026-10-04T11:20:00Z',
+    memo: '배송 완료 (ORD-20261002-83719)',
+  },
+];
+
+export const INITIAL_TAX_DOCUMENTS: TaxDocument[] = [
+  {
+    id: 'tax-01',
+    order_id: 'ord-01',
+    document_type: 'tax_invoice',
+    company_name: '(주)스타일랩코리아',
+    business_registration_number: '120-87-54321',
+    representative_name: '홍길동',
+    supply_amount: 268182,
+    tax_amount: 26818,
+    total_amount: 295000,
+    issue_status: 'issued',
+    issue_date: '2026-10-03',
+    created_at: '2026-10-02T13:50:00Z',
+  },
+  {
+    id: 'tax-02',
+    order_id: 'ord-02',
+    document_type: 'cash_receipt',
+    company_name: '개인 소득공제 (010-9876-5432)',
+    business_registration_number: '010-9876-5432',
+    representative_name: '김다써',
+    supply_amount: 290909,
+    tax_amount: 29091,
+    total_amount: 320000,
+    issue_status: 'requested',
+    created_at: '2026-10-05T09:20:00Z',
+  },
+];
+

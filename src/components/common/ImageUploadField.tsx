@@ -6,7 +6,7 @@ import { useToast } from '@/context/ToastContext';
 interface ImageUploadFieldProps {
   value: string;
   onChange: (url: string) => void;
-  bucket?: 'product-images' | 'banners' | 'avatars';
+  bucket?: 'products' | 'product-images' | 'banners' | 'avatars';
   label?: string;
   recommendedSize?: string;
 }
@@ -14,7 +14,7 @@ interface ImageUploadFieldProps {
 export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   value,
   onChange,
-  bucket = 'product-images',
+  bucket = 'products',
   label = '대표 이미지',
   recommendedSize = '1000 x 1000 px 이상 권장 (JPG, PNG, WebP)',
 }) => {

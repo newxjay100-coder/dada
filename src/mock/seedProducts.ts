@@ -145,6 +145,37 @@ export const INITIAL_CATEGORIES: Category[] = [
 ];
 
 export const INITIAL_PRODUCTS: Product[] = [
+  // 0. DASSOBA 2077 Cyber Street Collection (Uploaded Image Product)
+  {
+    id: 'prod-cyber-2077',
+    sku: 'DASSOBA-2077-CYBER-TECH01',
+    name: '[2077 GRAND OPENING] 사이버 스트리트 네온 텍티컬 후디 자켓 & 카고 컬렉션',
+    brand_id: 'b-1',
+    category_id: 'c-women-outer',
+    description: 'DASSOBA GRAND OPENING 한정 발매! 사이버펑크 2077 감성의 하이테크 발수 나일론과 네온 엠보싱 리플렉티브 디테일이 적용된 테크웨어 자켓입니다.',
+    details_html: '<p>전 회원 대상 최대 20% 오픈 쿠폰팩 적용 가능! 네온 반사 라인과 마그네틱 테크 버클, 3단 방수 지퍼가 적용된 다써바 시그니처 2077 에디션입니다.</p>',
+    cost_price: 88000,
+    regular_price: 249000,
+    sale_price: 199000,
+    discount_rate: 20,
+    tax_type: 'taxable',
+    status: 'active',
+    primary_image: '/images/products/cyber_street_2077_grand_opening.jpg',
+    is_one_plus_one: false,
+    is_new: true,
+    is_best: true,
+    view_count: 3840,
+    sale_count: 290,
+    rating_avg: 5.0,
+    review_count: 58,
+    created_at: '2026-10-12T00:00:00Z',
+    variants: [
+      { id: 'v-cyber-01', product_id: 'prod-cyber-2077', variant_sku: 'CYBER-2077-NEON-M', color: 'Neon Black', color_code: '#0d0d1a', size: 'M (100)', additional_price: 0, stock_quantity: 50, status: 'active' },
+      { id: 'v-cyber-02', product_id: 'prod-cyber-2077', variant_sku: 'CYBER-2077-NEON-L', color: 'Neon Black', color_code: '#0d0d1a', size: 'L (105)', additional_price: 0, stock_quantity: 50, status: 'active' },
+      { id: 'v-cyber-03', product_id: 'prod-cyber-2077', variant_sku: 'CYBER-2077-TEAL-M', color: 'Cyber Teal', color_code: '#00e5ff', size: 'M (100)', additional_price: 5000, stock_quantity: 40, status: 'active' },
+      { id: 'v-cyber-04', product_id: 'prod-cyber-2077', variant_sku: 'CYBER-2077-TEAL-L', color: 'Cyber Teal', color_code: '#00e5ff', size: 'L (105)', additional_price: 5000, stock_quantity: 40, status: 'active' },
+    ],
+  },
   // 1. Women Outer
   {
     id: 'prod-01',

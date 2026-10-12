@@ -35,7 +35,7 @@ export const AdminLayout: React.FC = () => {
     { label: '발주 관리 (PO)', path: '/admin/purchase-orders', icon: FileSpreadsheet },
     { label: '재고 관리 & 입출고', path: '/admin/inventory', icon: Boxes },
     { label: '원부자재 관리', path: '/admin/materials', icon: Layers },
-    { label: '세금계산서 / 영수증', path: '/admin/tax-documents', icon: Receipt },
+    { label: '세금계산서 / 명세서 출력', path: '/admin/tax-documents', icon: Receipt },
     { label: '배송 / 송장 관리', path: '/admin/delivery', icon: Truck },
     { label: '이벤트 & 기획전', path: '/admin/events', icon: Sparkles },
   ];

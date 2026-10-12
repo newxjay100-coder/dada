@@ -75,21 +75,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       if (isSupabaseConfigured) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: loginIdOrEmail,
-          password: pass,
-        });
-        if (!error && data.user) {
-          const { data: prof } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
-          if (prof) {
-            setUser(prof as Profile);
-            setIsLoading(false);
-            return { success: true };
+        try {
+          let authEmail = loginIdOrEmail.trim();
+          if (!authEmail.includes('@')) {
+            const { data: matchedProf } = await supabase
+              .from('profiles')
+              .select('email')
+              .eq('login_id', authEmail)
+              .maybeSingle();
+            if (matchedProf?.email) {
+              authEmail = matchedProf.email;
+            }
           }
+
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: authEmail,
+            password: pass,
+          });
+
+          if (!error && data.user) {
+            const { data: prof } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', data.user.id)
+              .single();
+            if (prof) {
+              setUser(prof as Profile);
+              MockProfileStore.setCurrentUser(prof as Profile);
+              setIsLoading(false);
+              return { success: true };
+            }
+          }
+        } catch (authErr) {
+          console.warn('Supabase auth login check exception:', authErr);
         }
       }
 
@@ -215,18 +233,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (isSupabaseConfigured && input.password) {
-        await supabase.auth.signUp({
-          email: input.email,
-          password: input.password,
-          options: {
-            data: {
-              login_id: input.login_id,
-              name: input.name,
-              role: newProfile.role,
-              department: input.department,
+        try {
+          const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: input.email.trim(),
+            password: input.password,
+            options: {
+              data: {
+                login_id: input.login_id.trim(),
+                name: newProfile.name,
+                phone: newProfile.phone,
+                role: newProfile.role,
+                department: input.department,
+              },
             },
-          },
-        });
+          });
+
+          if (authError) {
+            console.warn('Supabase Auth signUp warning:', authError.message);
+          } else if (authData?.user?.id) {
+            newProfile.id = authData.user.id;
+          }
+
+          // Directly sync to profiles table in Supabase
+          const { error: profErr } = await supabase.from('profiles').upsert(newProfile);
+          if (profErr) {
+            console.warn('Supabase profiles upsert warning:', profErr.message);
+          }
+        } catch (e: any) {
+          console.warn('Supabase Auth signup exception:', e);
+        }
       }
 
       MockProfileStore.updateProfile(newProfile);

@@ -348,7 +348,7 @@ export const AdminProductsPage: React.FC = () => {
               <ImageUploadField
                 value={primaryImage}
                 onChange={setPrimaryImage}
-                bucket="product-images"
+                bucket="products"
                 label="대표 상품 이미지 업로드"
               />
 

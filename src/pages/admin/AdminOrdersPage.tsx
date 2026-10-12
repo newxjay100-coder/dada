@@ -1,28 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Order, OrderStatus } from '@/types/database.types';
-import { MockOrderStore } from '@/mock/mockStorage';
+import { api } from '@/services/api';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { useToast } from '@/context/ToastContext';
 import { formatPrice } from '@/lib/utils';
-import { Search, Truck, Check, Package, RotateCcw } from 'lucide-react';
+import { Search, Truck, Check, Package, RotateCcw, Cloud, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const AdminOrdersPage: React.FC = () => {
-  const [orders, setOrders] = useState<Order[]>(() => MockOrderStore.getAll());
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { showToast } = useToast();
 
-  const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
-    MockOrderStore.updateStatus(orderId, newStatus);
-    setOrders(MockOrderStore.getAll());
-    showToast(`주문 상태가 '${newStatus}'(으)로 변경되었습니다.`, 'success');
+  const loadOrders = async () => {
+    setIsLoading(true);
+    try {
+      const data = await api.getOrders();
+      setOrders(data);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleBulkStatusChange = (newStatus: OrderStatus) => {
-    selectedIds.forEach((id) => MockOrderStore.updateStatus(id, newStatus));
-    setOrders(MockOrderStore.getAll());
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    await api.updateOrderStatus(orderId, newStatus);
+    await loadOrders();
+    showToast(`주문 상태가 '${newStatus}'(으)로 변경되어 Supabase에 저장되었습니다.`, 'success');
+  };
+
+  const handleBulkStatusChange = async (newStatus: OrderStatus) => {
+    for (const id of selectedIds) {
+      await api.updateOrderStatus(id, newStatus);
+    }
+    await loadOrders();
     setSelectedIds([]);
-    showToast(`선택된 ${selectedIds.length}개 주문의 상태가 일괄 변경되었습니다.`, 'success');
+    showToast(`선택된 ${selectedIds.length}개 주문의 상태가 일괄 변경되었습니다 (Supabase 동기화).`, 'success');
   };
 
   const toggleSelectAll = (checked: boolean) => {
@@ -51,10 +70,39 @@ export const AdminOrdersPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-neutral-800 gap-4">
         <div>
-          <h1 className="text-xl font-serif font-black text-white">주문 관리 (ORDER FULFILLMENT)</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-serif font-black text-white">주문 관리 (ORDER FULFILLMENT)</h1>
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                isSupabaseConfigured
+                  ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-neutral-800 text-neutral-400'
+              }`}
+            >
+              <Cloud className="w-3 h-3" />
+              {isSupabaseConfigured ? 'Supabase 클라우드 실시간 동기화' : '로컬 모의 저장소'}
+            </span>
+          </div>
           <p className="text-xs text-neutral-400 mt-1">
-            결제 확인, 배송 준비, 송장 번호 등록 및 주문 상태 일괄 변경
+            주문 상태 변경 시 Supabase <code className="text-cyan-400">orders</code> 및 <code className="text-cyan-400">order_items</code> 테이블에 실시간 반영됩니다.
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadOrders}
+            disabled={isLoading}
+            className="px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-mono text-xs flex items-center gap-1.5 border border-neutral-700 transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            새로고침
+          </button>
+          <Link
+            to="/admin/supabase"
+            className="px-3 py-2 bg-cyan-950/60 hover:bg-cyan-900 text-cyan-300 text-xs font-mono font-bold border border-cyan-500/40 flex items-center gap-1.5 transition-colors"
+          >
+            <Cloud className="w-3.5 h-3.5" />
+            Supabase 센터
+          </Link>
         </div>
       </div>
 

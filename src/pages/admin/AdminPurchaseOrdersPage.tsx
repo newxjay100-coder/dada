@@ -1,41 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PurchaseOrder } from '@/types/database.types';
 import { INITIAL_SUPPLIERS } from '@/mock/mockData';
+import { api } from '@/services/api';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { useToast } from '@/context/ToastContext';
 import { formatPrice } from '@/lib/utils';
-import { Plus, Check, Search, FileText } from 'lucide-react';
+import { Plus, Check, Search, FileText, Cloud, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const AdminPurchaseOrdersPage: React.FC = () => {
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([
-    {
-      id: 'po-01',
-      po_number: 'PO-20261001-01',
-      supplier_id: 'sup-01',
-      supplier_name: '(주)느와르 어패럴',
-      status: 'ordered',
-      total_cost: 15400000,
-      requested_date: '2026-10-01',
-      expected_date: '2026-10-12',
-      items_count: 140,
-      memo: '테일러드 울 블레이저 2차 리오더 생산분 발주',
-      created_at: '2026-10-01T09:00:00Z',
-    },
-    {
-      id: 'po-02',
-      po_number: 'PO-20260925-02',
-      supplier_id: 'sup-02',
-      supplier_name: '(주)아틀리에 텍스타일',
-      status: 'completed',
-      total_cost: 22000000,
-      requested_date: '2026-09-25',
-      expected_date: '2026-10-03',
-      received_date: '2026-10-03',
-      items_count: 200,
-      memo: '1+1 캐시미어 하프넥 니트 초도 생산 원사 및 완제품 입고 완료',
-      created_at: '2026-09-25T11:00:00Z',
-    },
-  ]);
-
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [supplierId, setSupplierId] = useState(INITIAL_SUPPLIERS[0].id);
   const [quantity, setQuantity] = useState(100);
@@ -43,7 +18,21 @@ export const AdminPurchaseOrdersPage: React.FC = () => {
   const [memo, setMemo] = useState('');
   const { showToast } = useToast();
 
-  const handleCreatePO = (e: React.FormEvent) => {
+  const loadPurchaseOrders = async () => {
+    setIsLoading(true);
+    try {
+      const data = await api.getPurchaseOrders();
+      setPurchaseOrders(data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPurchaseOrders();
+  }, []);
+
+  const handleCreatePO = async (e: React.FormEvent) => {
     e.preventDefault();
     const sup = INITIAL_SUPPLIERS.find((s) => s.id === supplierId);
     const newPo: PurchaseOrder = {
@@ -59,33 +48,55 @@ export const AdminPurchaseOrdersPage: React.FC = () => {
       memo,
       created_at: new Date().toISOString(),
     };
-    setPurchaseOrders([newPo, ...purchaseOrders]);
+    await api.savePurchaseOrder(newPo);
+    await loadPurchaseOrders();
     setShowModal(false);
-    showToast('새 발주서가 성공적으로 생성 및 접수되었습니다.', 'success');
+    showToast('새 발주서가 Supabase purchase_orders 테이블에 실시간 등록되었습니다.', 'success');
   };
 
-  const handleUpdateStatus = (poId: string, status: any) => {
-    setPurchaseOrders((prev) =>
-      prev.map((p) => (p.id === poId ? { ...p, status } : p))
-    );
-    showToast(`발주 상태가 '${status}'(으)로 업데이트되었습니다.`, 'info');
+  const handleUpdateStatus = async (poId: string, status: any) => {
+    await api.updatePOStatus(poId, status);
+    await loadPurchaseOrders();
+    showToast(`발주 상태가 '${status}'(으)로 업데이트되어 Supabase에 저장되었습니다.`, 'info');
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-neutral-800 gap-4">
         <div>
-          <h1 className="text-xl font-serif font-black text-white">발주 관리 (PURCHASE ORDER)</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-serif font-black text-white">발주 관리 (PURCHASE ORDER)</h1>
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                isSupabaseConfigured
+                  ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-neutral-800 text-neutral-400'
+              }`}
+            >
+              <Cloud className="w-3 h-3" />
+              {isSupabaseConfigured ? 'Supabase purchase_orders 동기화' : '로컬 모의 저장소'}
+            </span>
+          </div>
           <p className="text-xs text-neutral-400 mt-1">
-            원단 및 완제품 공급업체 발주서 작성, 입고 검수 및 공급가액 정산 관리
+            원단 및 완제품 공급업체 발주서 등록 및 입고 정산 시 Supabase <code className="text-cyan-400">purchase_orders</code> 테이블에 저장됩니다.
           </p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="px-4 py-2.5 bg-[#721b29] hover:bg-[#8e2233] text-white font-bold text-xs uppercase flex items-center gap-1.5 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> 신규 발주서 작성
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadPurchaseOrders}
+            disabled={isLoading}
+            className="px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-mono text-xs flex items-center gap-1.5 border border-neutral-700 transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            새로고침
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="px-4 py-2.5 bg-[#721b29] hover:bg-[#8e2233] text-white font-bold text-xs uppercase flex items-center gap-1.5 transition-colors"
+          >
+            <Plus className="w-4 h-4" /> 신규 발주서 작성
+          </button>
+        </div>
       </div>
 
       {/* PO Table */}

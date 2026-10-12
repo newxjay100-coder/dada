@@ -8,6 +8,9 @@ import {
   Post,
   Supplier,
   Material,
+  PurchaseOrder,
+  Shipment,
+  TaxDocument,
   EventItem,
   PopupItem,
   Inquiry,
@@ -26,6 +29,9 @@ import {
   INITIAL_USER_COUPONS,
   INITIAL_SUPPLIERS,
   INITIAL_MATERIALS,
+  INITIAL_PURCHASE_ORDERS,
+  INITIAL_DELIVERIES,
+  INITIAL_TAX_DOCUMENTS,
 } from './mockData';
 
 const STORAGE_KEYS = {
@@ -41,6 +47,9 @@ const STORAGE_KEYS = {
   POPUPS: 'dassoba_v3_popups',
   SUPPLIERS: 'dassoba_suppliers',
   MATERIALS: 'dassoba_materials',
+  PURCHASE_ORDERS: 'dassoba_purchase_orders',
+  DELIVERIES: 'dassoba_deliveries',
+  TAX_DOCUMENTS: 'dassoba_tax_documents',
   CURRENT_USER: 'dassoba_current_user',
   CART: 'dassoba_cart',
   WISHLIST: 'dassoba_wishlist',
@@ -99,6 +108,15 @@ export function initMockStorage() {
   if (!localStorage.getItem(STORAGE_KEYS.MATERIALS)) {
     setStorage(STORAGE_KEYS.MATERIALS, INITIAL_MATERIALS);
   }
+  if (!localStorage.getItem(STORAGE_KEYS.PURCHASE_ORDERS)) {
+    setStorage(STORAGE_KEYS.PURCHASE_ORDERS, INITIAL_PURCHASE_ORDERS);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.DELIVERIES)) {
+    setStorage(STORAGE_KEYS.DELIVERIES, INITIAL_DELIVERIES);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.TAX_DOCUMENTS)) {
+    setStorage(STORAGE_KEYS.TAX_DOCUMENTS, INITIAL_TAX_DOCUMENTS);
+  }
   if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER)) {
     setStorage(STORAGE_KEYS.CURRENT_USER, INITIAL_PROFILES[1]); // Default to VIP user
   }
@@ -145,6 +163,17 @@ export const MockOrderStore = {
   create: (order: Order): Order => {
     const list = MockOrderStore.getAll();
     list.unshift(order);
+    setStorage(STORAGE_KEYS.ORDERS, list);
+    return order;
+  },
+  save: (order: Order): Order => {
+    const list = MockOrderStore.getAll();
+    const index = list.findIndex((o) => o.id === order.id);
+    if (index >= 0) {
+      list[index] = order;
+    } else {
+      list.unshift(order);
+    }
     setStorage(STORAGE_KEYS.ORDERS, list);
     return order;
   },
@@ -400,3 +429,139 @@ export const MockPostStore = {
     return newPost;
   },
 };
+
+// Materials API
+export const MockMaterialStore = {
+  getAll: (): Material[] => {
+    initMockStorage();
+    return getStorage<Material[]>(STORAGE_KEYS.MATERIALS, INITIAL_MATERIALS);
+  },
+  save: (material: Material): Material => {
+    const list = MockMaterialStore.getAll();
+    const index = list.findIndex((m) => m.id === material.id);
+    if (index >= 0) {
+      list[index] = material;
+    } else {
+      list.unshift(material);
+    }
+    setStorage(STORAGE_KEYS.MATERIALS, list);
+    return material;
+  },
+  delete: (id: string): void => {
+    const list = MockMaterialStore.getAll().filter((m) => m.id !== id);
+    setStorage(STORAGE_KEYS.MATERIALS, list);
+  },
+};
+
+// Purchase Orders API
+export const MockPurchaseOrderStore = {
+  getAll: (): PurchaseOrder[] => {
+    initMockStorage();
+    return getStorage<PurchaseOrder[]>(STORAGE_KEYS.PURCHASE_ORDERS, INITIAL_PURCHASE_ORDERS);
+  },
+  save: (po: PurchaseOrder): PurchaseOrder => {
+    const list = MockPurchaseOrderStore.getAll();
+    const index = list.findIndex((p) => p.id === po.id);
+    if (index >= 0) {
+      list[index] = po;
+    } else {
+      list.unshift(po);
+    }
+    setStorage(STORAGE_KEYS.PURCHASE_ORDERS, list);
+    return po;
+  },
+  updateStatus: (poId: string, status: PurchaseOrder['status']): PurchaseOrder | undefined => {
+    const list = MockPurchaseOrderStore.getAll();
+    const item = list.find((p) => p.id === poId);
+    if (item) {
+      item.status = status;
+      if (status === 'completed') {
+        item.received_date = new Date().toISOString().split('T')[0];
+      }
+      setStorage(STORAGE_KEYS.PURCHASE_ORDERS, list);
+    }
+    return item;
+  },
+  delete: (id: string): void => {
+    const list = MockPurchaseOrderStore.getAll().filter((p) => p.id !== id);
+    setStorage(STORAGE_KEYS.PURCHASE_ORDERS, list);
+  },
+};
+
+// Deliveries / Shipments API
+export const MockDeliveryStore = {
+  getAll: (): Shipment[] => {
+    initMockStorage();
+    return getStorage<Shipment[]>(STORAGE_KEYS.DELIVERIES, INITIAL_DELIVERIES);
+  },
+  save: (shipment: Shipment): Shipment => {
+    const list = MockDeliveryStore.getAll();
+    const index = list.findIndex((s) => s.id === shipment.id);
+    if (index >= 0) {
+      list[index] = shipment;
+    } else {
+      list.unshift(shipment);
+    }
+    setStorage(STORAGE_KEYS.DELIVERIES, list);
+    return shipment;
+  },
+  updateTracking: (
+    id: string,
+    trackingNumber: string,
+    status: Shipment['shipment_status'] = 'shipping'
+  ): Shipment | undefined => {
+    const list = MockDeliveryStore.getAll();
+    const item = list.find((s) => s.id === id);
+    if (item) {
+      item.tracking_number = trackingNumber;
+      item.shipment_status = status;
+      if (status === 'shipping' && !item.shipped_at) {
+        item.shipped_at = new Date().toISOString();
+      } else if (status === 'delivered' && !item.delivered_at) {
+        item.delivered_at = new Date().toISOString();
+      }
+      setStorage(STORAGE_KEYS.DELIVERIES, list);
+    }
+    return item;
+  },
+  delete: (id: string): void => {
+    const list = MockDeliveryStore.getAll().filter((s) => s.id !== id);
+    setStorage(STORAGE_KEYS.DELIVERIES, list);
+  },
+};
+
+// Tax Documents API
+export const MockTaxDocumentStore = {
+  getAll: (): TaxDocument[] => {
+    initMockStorage();
+    return getStorage<TaxDocument[]>(STORAGE_KEYS.TAX_DOCUMENTS, INITIAL_TAX_DOCUMENTS);
+  },
+  save: (doc: TaxDocument): TaxDocument => {
+    const list = MockTaxDocumentStore.getAll();
+    const index = list.findIndex((d) => d.id === doc.id);
+    if (index >= 0) {
+      list[index] = doc;
+    } else {
+      list.unshift(doc);
+    }
+    setStorage(STORAGE_KEYS.TAX_DOCUMENTS, list);
+    return doc;
+  },
+  updateStatus: (id: string, status: TaxDocument['issue_status']): TaxDocument | undefined => {
+    const list = MockTaxDocumentStore.getAll();
+    const item = list.find((d) => d.id === id);
+    if (item) {
+      item.issue_status = status;
+      if (status === 'issued') {
+        item.issue_date = new Date().toISOString().split('T')[0];
+      }
+      setStorage(STORAGE_KEYS.TAX_DOCUMENTS, list);
+    }
+    return item;
+  },
+  delete: (id: string): void => {
+    const list = MockTaxDocumentStore.getAll().filter((d) => d.id !== id);
+    setStorage(STORAGE_KEYS.TAX_DOCUMENTS, list);
+  },
+};
+

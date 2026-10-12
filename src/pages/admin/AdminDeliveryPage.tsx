@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Shipment, Order } from '@/types/database.types';
+import { api } from '@/services/api';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { useToast } from '@/context/ToastContext';
-import { Truck, Check, Plus, Search } from 'lucide-react';
+import { Truck, Check, Plus, Search, Cloud, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface ShipmentRow {
   id: string;
+  orderId: string;
   orderNumber: string;
   recipientName: string;
   carrier: string;
@@ -14,72 +19,152 @@ interface ShipmentRow {
 
 export const AdminDeliveryPage: React.FC = () => {
   const { showToast } = useToast();
-
-  const [shipments, setShipments] = useState<ShipmentRow[]>([
-    {
-      id: 'sh-01',
-      orderNumber: 'ORD-20261005-94821',
-      recipientName: '김다써',
-      carrier: 'CJ대한통운',
-      trackingNumber: '6891029381',
-      status: 'shipping',
-      shippedAt: '2026-10-05 14:00',
-    },
-    {
-      id: 'sh-02',
-      orderNumber: 'ORD-20261002-83719',
-      recipientName: '김다써',
-      carrier: 'CJ대한통운',
-      trackingNumber: '6891011244',
-      status: 'delivered',
-      shippedAt: '2026-10-02 16:30',
-    },
-  ]);
-
+  const [shipments, setShipments] = useState<ShipmentRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [bulkInput, setBulkInput] = useState('');
   const [showBulkModal, setShowBulkModal] = useState(false);
 
-  const handleUpdateTracking = (id: string, trackingNumber: string) => {
-    setShipments((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, trackingNumber, status: 'shipping' } : s))
-    );
-    showToast('송장 번호가 등록되어 배송중 상태로 변경되었습니다.', 'success');
+  const loadDeliveries = async () => {
+    setIsLoading(true);
+    try {
+      const [delData, ordData] = await Promise.all([
+        api.getDeliveries(),
+        api.getOrders(),
+      ]);
+
+      const ordMap = new Map(ordData.map((o) => [o.id, o]));
+
+      // Merge deliveries with orders
+      const rows: ShipmentRow[] = delData.map((d) => {
+        const ord = ordMap.get(d.order_id);
+        return {
+          id: d.id,
+          orderId: d.order_id,
+          orderNumber: ord?.order_number || d.order_id,
+          recipientName: ord?.recipient_name || ord?.buyer_name || '고객',
+          carrier: d.carrier || 'CJ대한통운',
+          trackingNumber: d.tracking_number || '',
+          status: (d.shipment_status as any) || 'shipping',
+          shippedAt: d.shipped_at ? d.shipped_at.substring(0, 16).replace('T', ' ') : undefined,
+        };
+      });
+
+      // If there are orders without delivery records, auto-add them
+      for (const ord of ordData) {
+        if (!rows.some((r) => r.orderId === ord.id)) {
+          rows.push({
+            id: `sh-${ord.id}`,
+            orderId: ord.id,
+            orderNumber: ord.order_number,
+            recipientName: ord.recipient_name || ord.buyer_name,
+            carrier: 'CJ대한통운',
+            trackingNumber: '',
+            status: ord.order_status === 'delivered' ? 'delivered' : ord.order_status === 'shipping' ? 'shipping' : 'ready',
+            shippedAt: undefined,
+          });
+        }
+      }
+
+      setShipments(rows);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleBulkSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadDeliveries();
+  }, []);
+
+  const handleUpdateTracking = async (id: string, trackingNumber: string) => {
+    const shipment = shipments.find((s) => s.id === id);
+    if (!shipment) return;
+
+    await api.saveDelivery({
+      id,
+      order_id: shipment.orderId,
+      carrier: shipment.carrier,
+      tracking_number: trackingNumber,
+      shipment_status: 'shipping',
+      shipped_at: new Date().toISOString(),
+    });
+
+    // Also update order status
+    await api.updateOrderStatus(shipment.orderId, 'shipping');
+    await loadDeliveries();
+    showToast('송장 번호가 등록되어 Supabase deliveries 테이블 및 주문상태(배송중)에 실시간 반영되었습니다.', 'success');
+  };
+
+  const handleBulkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bulkInput.trim()) return;
 
     // Parse lines: ORDER_NUMBER,TRACKING_NO
     const lines = bulkInput.trim().split('\n');
     let count = 0;
-    lines.forEach((line) => {
+    for (const line of lines) {
       const parts = line.split(',');
       if (parts.length >= 2) {
-        count++;
+        const ordNum = parts[0].trim();
+        const trk = parts[1].trim();
+        const matched = shipments.find((s) => s.orderNumber === ordNum || s.orderId === ordNum);
+        if (matched) {
+          await api.saveDelivery({
+            id: matched.id,
+            order_id: matched.orderId,
+            carrier: 'CJ대한통운',
+            tracking_number: trk,
+            shipment_status: 'shipping',
+            shipped_at: new Date().toISOString(),
+          });
+          await api.updateOrderStatus(matched.orderId, 'shipping');
+          count++;
+        }
       }
-    });
+    }
 
+    await loadDeliveries();
     setShowBulkModal(false);
     setBulkInput('');
-    showToast(`${count}건의 송장 번호가 일괄 반영되었습니다.`, 'success');
+    showToast(`${count}건의 송장 번호가 Supabase deliveries 테이블에 일괄 등록되었습니다.`, 'success');
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-neutral-800 gap-4">
         <div>
-          <h1 className="text-xl font-serif font-black text-white">배송 및 송장 관리 (LOGISTICS)</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-serif font-black text-white">배송 및 송장 관리 (LOGISTICS)</h1>
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                isSupabaseConfigured
+                  ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-neutral-800 text-neutral-400'
+              }`}
+            >
+              <Cloud className="w-3 h-3" />
+              {isSupabaseConfigured ? 'Supabase deliveries 동기화' : '로컬 모의 저장소'}
+            </span>
+          </div>
           <p className="text-xs text-neutral-400 mt-1">
-            택배사 지정, 운송장 번호 개별 및 일괄 등록, 실시간 배송 추적 상태 동기화
+            택배사 지정 및 송장 번호 등록 시 Supabase <code className="text-cyan-400">deliveries</code> 테이블에 실시간 저장됩니다.
           </p>
         </div>
-        <button
-          onClick={() => setShowBulkModal(true)}
-          className="px-4 py-2 bg-[#721b29] hover:bg-[#8e2233] text-white font-bold text-xs uppercase flex items-center gap-1.5 transition-colors"
-        >
-          <Truck className="w-4 h-4" /> 송장 번호 일괄 업로드
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadDeliveries}
+            disabled={isLoading}
+            className="px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-mono text-xs flex items-center gap-1.5 border border-neutral-700 transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            새로고침
+          </button>
+          <button
+            onClick={() => setShowBulkModal(true)}
+            className="px-4 py-2 bg-[#721b29] hover:bg-[#8e2233] text-white font-bold text-xs uppercase flex items-center gap-1.5 transition-colors"
+          >
+            <Truck className="w-4 h-4" /> 송장 번호 일괄 업로드
+          </button>
+        </div>
       </div>
 
       {/* Shipment Table */}

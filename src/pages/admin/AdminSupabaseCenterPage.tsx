@@ -14,6 +14,8 @@ import {
   Shield,
   Layers,
   Sparkles,
+  Image as ImageIcon,
+  CheckCircle,
 } from 'lucide-react';
 import {
   getSupabaseConnectionInfo,
@@ -30,6 +32,8 @@ export const AdminSupabaseCenterPage: React.FC = () => {
   const [isTesting, setIsTesting] = useState(false);
   const [isSyncingPush, setIsSyncingPush] = useState(false);
   const [isSyncingPull, setIsSyncingPull] = useState(false);
+  const [isSyncingAttached, setIsSyncingAttached] = useState(false);
+  const [attachedStorageUrl, setAttachedStorageUrl] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{
     ok: boolean;
     message: string;
@@ -74,7 +78,11 @@ export const AdminSupabaseCenterPage: React.FC = () => {
   };
 
   const handlePushAll = async () => {
-    if (!window.confirm('로컬에 저장된 모든 상품, 회원, 이벤트, 주문 데이터를 Supabase 클라우드로 즉시 업로드하시겠습니까?')) {
+    if (
+      !window.confirm(
+        '로컬에 저장된 모든 상품, 회원, 이벤트, 주문, 배송, 원부자재, 발주, 세금계산서 데이터를 Supabase 클라우드로 즉시 업로드하시겠습니까?'
+      )
+    ) {
       return;
     }
 
@@ -83,7 +91,7 @@ export const AdminSupabaseCenterPage: React.FC = () => {
       const res = await api.syncAllToSupabase();
       if (res.success) {
         showToast(
-          `전체 데이터 업로드 완료! (상품: ${res.syncedCounts.products}개, 회원: ${res.syncedCounts.profiles}명, 이벤트: ${res.syncedCounts.events}개, 주문: ${res.syncedCounts.orders}건)`,
+          `전체 데이터 업로드 완료! (상품: ${res.syncedCounts.products}개, 회원: ${res.syncedCounts.profiles}명, 주문: ${res.syncedCounts.orders}건, 배송: ${res.syncedCounts.deliveries}건, 원부자재: ${res.syncedCounts.materials}건, 발주: ${res.syncedCounts.purchaseOrders}건, 세금계산서: ${res.syncedCounts.taxDocuments}건)`,
           'success'
         );
       } else {
@@ -106,7 +114,7 @@ export const AdminSupabaseCenterPage: React.FC = () => {
       const res = await api.syncAllFromSupabase();
       if (res.success) {
         showToast(
-          `데이터 가져오기 완료! (상품: ${res.pulledCounts.products}개, 회원: ${res.pulledCounts.profiles}명, 이벤트: ${res.pulledCounts.events}개)`,
+          `데이터 가져오기 완료! (상품: ${res.pulledCounts.products}개, 회원: ${res.pulledCounts.profiles}명, 주문: ${res.pulledCounts.orders}건, 원부자재: ${res.pulledCounts.materials}건)`,
           'success'
         );
       } else {
@@ -119,9 +127,34 @@ export const AdminSupabaseCenterPage: React.FC = () => {
     }
   };
 
+  // Upload attached image to Supabase Storage 'products' bucket & save product
+  const handleSyncAttachedImage = async () => {
+    setIsSyncingAttached(true);
+    try {
+      const res = await api.syncAttachedProductAndStorage();
+      if (res.success) {
+        setAttachedStorageUrl(res.storageUrl || null);
+        showToast(
+          `첨부 이미지가 Supabase Storage 'products' 및 products 테이블에 성공적으로 업로드되었습니다! (${res.product?.name})`,
+          'success'
+        );
+        handleTestConnection();
+      } else {
+        showToast(`업로드 실패: ${res.error}`, 'error');
+      }
+    } catch (e: any) {
+      showToast(`업로드 중 오류: ${e.message}`, 'error');
+    } finally {
+      setIsSyncingAttached(false);
+    }
+  };
+
   const sampleSql = `-- ==========================================
--- DASSOBA (다써바) Supabase 빠른 테이블 생성 SQL
+-- DASSOBA (다써바) Full Enterprise ERP Schema
+-- Copy and paste this into Supabase Dashboard > SQL Editor
 -- ==========================================
+
+-- 1. Profiles & Members
 CREATE TABLE IF NOT EXISTS public.profiles (
   id TEXT PRIMARY KEY,
   login_id TEXT UNIQUE,
@@ -135,6 +168,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 2. Products & Variants
 CREATE TABLE IF NOT EXISTS public.products (
   id TEXT PRIMARY KEY,
   sku TEXT UNIQUE,
@@ -170,6 +204,7 @@ CREATE TABLE IF NOT EXISTS public.product_variants (
   status TEXT DEFAULT 'active'
 );
 
+-- 3. Events & Hero Banners
 CREATE TABLE IF NOT EXISTS public.events (
   id TEXT PRIMARY KEY,
   slug TEXT UNIQUE,
@@ -185,9 +220,116 @@ CREATE TABLE IF NOT EXISTS public.events (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Storage Buckets
+-- 4. Orders & Order Items
+CREATE TABLE IF NOT EXISTS public.orders (
+  id TEXT PRIMARY KEY,
+  order_number TEXT UNIQUE,
+  user_id TEXT,
+  order_name TEXT,
+  buyer_name TEXT,
+  buyer_phone TEXT,
+  buyer_email TEXT,
+  recipient_name TEXT,
+  recipient_phone TEXT,
+  postal_code TEXT,
+  address_line1 TEXT,
+  address_line2 TEXT,
+  delivery_memo TEXT,
+  total_product_amount INT DEFAULT 0,
+  delivery_fee INT DEFAULT 0,
+  discount_amount INT DEFAULT 0,
+  coupon_discount INT DEFAULT 0,
+  points_used INT DEFAULT 0,
+  final_payment_amount INT DEFAULT 0,
+  payment_method TEXT DEFAULT 'credit_card',
+  order_status TEXT DEFAULT 'paid',
+  payment_status TEXT DEFAULT 'completed',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.order_items (
+  id TEXT PRIMARY KEY,
+  order_id TEXT REFERENCES public.orders(id) ON DELETE CASCADE,
+  product_id TEXT,
+  variant_id TEXT,
+  product_name TEXT,
+  variant_info TEXT,
+  unit_price INT DEFAULT 0,
+  quantity INT DEFAULT 1,
+  total_amount INT DEFAULT 0,
+  is_one_plus_one BOOLEAN DEFAULT false,
+  status TEXT DEFAULT 'paid',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 5. Deliveries (Logistics)
+CREATE TABLE IF NOT EXISTS public.deliveries (
+  id TEXT PRIMARY KEY,
+  order_id TEXT,
+  carrier TEXT DEFAULT 'CJ대한통운',
+  tracking_number TEXT,
+  shipment_status TEXT DEFAULT 'ready',
+  shipped_at TIMESTAMPTZ,
+  delivered_at TIMESTAMPTZ,
+  memo TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 6. Raw Materials (원부자재)
+CREATE TABLE IF NOT EXISTS public.materials (
+  id TEXT PRIMARY KEY,
+  material_code TEXT UNIQUE,
+  material_name TEXT,
+  supplier_id TEXT,
+  supplier_name TEXT,
+  stock NUMERIC DEFAULT 0,
+  unit TEXT DEFAULT 'YD',
+  cost INT DEFAULT 0,
+  location TEXT,
+  memo TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 7. Purchase Orders (발주 관리 PO)
+CREATE TABLE IF NOT EXISTS public.purchase_orders (
+  id TEXT PRIMARY KEY,
+  po_number TEXT UNIQUE,
+  supplier_id TEXT,
+  supplier_name TEXT,
+  status TEXT DEFAULT 'ordered',
+  total_cost INT DEFAULT 0,
+  requested_date TEXT,
+  expected_date TEXT,
+  received_date TEXT,
+  items_count INT DEFAULT 0,
+  memo TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 8. Tax Invoices & Documents (세금계산서/명세서)
+CREATE TABLE IF NOT EXISTS public.tax_documents (
+  id TEXT PRIMARY KEY,
+  order_id TEXT,
+  document_type TEXT DEFAULT 'tax_invoice',
+  company_name TEXT,
+  business_registration_number TEXT,
+  representative_name TEXT,
+  supply_amount INT DEFAULT 0,
+  tax_amount INT DEFAULT 0,
+  total_amount INT DEFAULT 0,
+  issue_status TEXT DEFAULT 'issued',
+  issue_date TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 9. Storage Buckets (Public)
+INSERT INTO storage.buckets (id, name, public) VALUES ('products', 'products', true) ON CONFLICT DO NOTHING;
 INSERT INTO storage.buckets (id, name, public) VALUES ('product-images', 'product-images', true) ON CONFLICT DO NOTHING;
 INSERT INTO storage.buckets (id, name, public) VALUES ('banners', 'banners', true) ON CONFLICT DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT DO NOTHING;
+
+-- Storage Public Read Policy
+CREATE POLICY "Public Storage Access" ON storage.objects FOR SELECT USING (bucket_id IN ('products', 'product-images', 'banners', 'avatars'));
 `;
 
   const handleCopySql = () => {
@@ -281,16 +423,83 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('banners', 'banners', tru
         </div>
       </div>
 
+      {/* ================================================================= */}
+      {/* Attached Image & Storage Upload Card (User Explicit Request) */}
+      {/* ================================================================= */}
+      <div className="p-5 bg-neutral-950 border border-pink-500/30 rounded-xl space-y-4">
+        <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-pink-400" />
+            <h3 className="text-sm font-bold text-white font-mono">
+              첨부 이미지 Supabase Storage (products 버킷) 업로드 &amp; 상품 테이블 동기화
+            </h3>
+          </div>
+          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-pink-950 text-pink-300 border border-pink-800/60 font-bold">
+            BUCKET: products
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+          <div className="md:col-span-3">
+            <div className="aspect-square bg-neutral-900 rounded-lg overflow-hidden border border-neutral-800 relative group">
+              <img
+                src="/images/products/cyber_street_2077_grand_opening.jpg"
+                alt="Cyber Street 2077 Grand Opening"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[11px] font-mono text-cyan-300">
+                CYBER_STREET_2077
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-9 space-y-3">
+            <div>
+              <span className="text-[10px] font-mono text-pink-400 font-bold tracking-wider">
+                [2077 GRAND OPENING CELEBRATION COLLECTION]
+              </span>
+              <h4 className="text-sm font-bold text-white mt-0.5">
+                사이버 스트리트 네온 텍티컬 후디 자켓 &amp; 카고 컬렉션
+              </h4>
+              <p className="text-xs text-neutral-400 mt-1 leading-relaxed">
+                첨부해주신 이미지를 Supabase Storage의 <code className="text-cyan-400">products</code> 버킷에 즉시 저장하고, 해당 이미지를 대표 이미지로 사용하는 신규 상품(<code className="text-pink-400">prod-cyber-2077</code>)과 기획전 배너를 Supabase <code className="text-cyan-400">products</code> 및 <code className="text-cyan-400">events</code> 테이블에 실시간 동기화합니다.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <button
+                onClick={handleSyncAttachedImage}
+                disabled={isSyncingAttached}
+                className="px-5 py-2.5 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-mono font-bold text-xs uppercase flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(255,0,127,0.4)] transition-all"
+              >
+                <UploadCloud className={`w-4 h-4 ${isSyncingAttached ? 'animate-bounce' : ''}`} />
+                <span>
+                  {isSyncingAttached
+                    ? 'Storage 및 products 테이블 업로드 중...'
+                    : '첨부 이미지를 Supabase Storage (products) 및 DB에 즉시 업로드'}
+                </span>
+              </button>
+
+              {attachedStorageUrl && (
+                <span className="text-xs text-emerald-400 font-mono flex items-center gap-1.5">
+                  <CheckCircle className="w-4 h-4" /> 업로드 완료
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Cloud Batch Action Toolbar */}
       <div className="p-5 bg-gradient-to-r from-cyan-950/40 via-neutral-950 to-pink-950/30 border border-cyan-500/30 rounded-xl space-y-3">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-cyan-300" />
           <h3 className="text-sm font-bold text-white font-mono">
-            원클릭 양방향 클라우드 데이터 동기화
+            원클릭 양방향 클라우드 데이터 동기화 (전체 8개 테이블 일괄 처리)
           </h3>
         </div>
         <p className="text-xs text-neutral-300 leading-relaxed">
-          상품, 상품 옵션, 회원 명단, 프로모션 기획전, 주문 내역을 클릭 한 번으로 Supabase 클라우드 데이터베이스에 실시간 일괄 업로드하거나 가져옵니다.
+          상품, 상품 옵션, 회원 명단, 프로모션 기획전, 주문, 배송(운송장), 원부자재, 발주(PO), 세금계산서 데이터를 클릭 한 번으로 Supabase 클라우드 데이터베이스에 실시간 일괄 업로드하거나 가져옵니다.
         </p>
 
         <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -371,7 +580,7 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('banners', 'banners', tru
           <div className="flex items-center gap-2">
             <Database className="w-4 h-4 text-cyan-400" />
             <h3 className="text-sm font-bold text-white">
-              Supabase 필수 테이블 & 스토리지 버킷 원클릭 SQL
+              Supabase 필수 테이블 &amp; 스토리지 버킷 원클릭 SQL (전체 스키마)
             </h3>
           </div>
           <button
@@ -383,9 +592,9 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('banners', 'banners', tru
           </button>
         </div>
         <p className="text-xs text-neutral-400">
-          신규 Supabase 프로젝트를 생성했을 경우, Supabase 대시보드의 **SQL Editor**에 위 스크립트를 붙여넣고 실행하면 필요한 테이블(`products`, `profiles`, `events` 등)과 이미지 스토리지 버킷(`product-images`, `banners`)이 즉시 생성됩니다.
+          신규 Supabase 프로젝트를 생성했을 경우, Supabase 대시보드의 **SQL Editor**에 위 스크립트를 붙여넣고 실행하면 필요한 테이블 8개(`products`, `profiles`, `orders`, `deliveries`, `materials`, `purchase_orders`, `tax_documents`, `events`)와 스토리지 버킷(`products`, `banners` 등)이 즉시 생성됩니다.
         </p>
-        <pre className="p-3 bg-neutral-900 border border-neutral-800 text-[11px] font-mono text-neutral-300 rounded max-h-48 overflow-y-auto">
+        <pre className="p-3 bg-neutral-900 border border-neutral-800 text-[11px] font-mono text-neutral-300 rounded max-h-56 overflow-y-auto">
           {sampleSql}
         </pre>
       </div>
