@@ -1,0 +1,319 @@
+import {
+  Product,
+  Order,
+  Review,
+  Profile,
+  PointTransaction,
+  UserCoupon,
+  Post,
+  Supplier,
+  Material,
+  EventItem,
+  PopupItem,
+  Inquiry,
+  OrderStatus,
+} from '@/types/database.types';
+import { INITIAL_PRODUCTS, INITIAL_BRANDS, INITIAL_CATEGORIES } from './seedProducts';
+import {
+  INITIAL_COUPONS,
+  INITIAL_EVENTS,
+  INITIAL_POPUPS,
+  INITIAL_REVIEWS,
+  INITIAL_POSTS,
+  INITIAL_PROFILES,
+  INITIAL_ORDERS,
+  INITIAL_POINT_TRANSACTIONS,
+  INITIAL_USER_COUPONS,
+  INITIAL_SUPPLIERS,
+  INITIAL_MATERIALS,
+} from './mockData';
+
+const STORAGE_KEYS = {
+  PRODUCTS: 'dassoba_products',
+  ORDERS: 'dassoba_orders',
+  REVIEWS: 'dassoba_reviews',
+  PROFILES: 'dassoba_profiles',
+  POINTS: 'dassoba_point_transactions',
+  USER_COUPONS: 'dassoba_user_coupons',
+  POSTS: 'dassoba_posts',
+  INQUIRIES: 'dassoba_inquiries',
+  EVENTS: 'dassoba_events',
+  POPUPS: 'dassoba_popups',
+  SUPPLIERS: 'dassoba_suppliers',
+  MATERIALS: 'dassoba_materials',
+  CURRENT_USER: 'dassoba_current_user',
+  CART: 'dassoba_cart',
+  WISHLIST: 'dassoba_wishlist',
+};
+
+function getStorage<T>(key: string, fallback: T): T {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function setStorage<T>(key: string, value: T): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.error('Storage quota exceeded or error:', e);
+  }
+}
+
+// Initializer
+export function initMockStorage() {
+  if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
+    setStorage(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.ORDERS)) {
+    setStorage(STORAGE_KEYS.ORDERS, INITIAL_ORDERS);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.REVIEWS)) {
+    setStorage(STORAGE_KEYS.REVIEWS, INITIAL_REVIEWS);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.PROFILES)) {
+    setStorage(STORAGE_KEYS.PROFILES, INITIAL_PROFILES);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.POINTS)) {
+    setStorage(STORAGE_KEYS.POINTS, INITIAL_POINT_TRANSACTIONS);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.USER_COUPONS)) {
+    setStorage(STORAGE_KEYS.USER_COUPONS, INITIAL_USER_COUPONS);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.POSTS)) {
+    setStorage(STORAGE_KEYS.POSTS, INITIAL_POSTS);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.EVENTS)) {
+    setStorage(STORAGE_KEYS.EVENTS, INITIAL_EVENTS);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.POPUPS)) {
+    setStorage(STORAGE_KEYS.POPUPS, INITIAL_POPUPS);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.SUPPLIERS)) {
+    setStorage(STORAGE_KEYS.SUPPLIERS, INITIAL_SUPPLIERS);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.MATERIALS)) {
+    setStorage(STORAGE_KEYS.MATERIALS, INITIAL_MATERIALS);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER)) {
+    setStorage(STORAGE_KEYS.CURRENT_USER, INITIAL_PROFILES[1]); // Default to VIP user
+  }
+}
+
+// Products API
+export const MockProductStore = {
+  getAll: (): Product[] => {
+    initMockStorage();
+    return getStorage<Product[]>(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+  },
+  getById: (id: string): Product | undefined => {
+    return MockProductStore.getAll().find((p) => p.id === id);
+  },
+  save: (product: Product): Product => {
+    const list = MockProductStore.getAll();
+    const index = list.findIndex((p) => p.id === product.id);
+    if (index >= 0) {
+      list[index] = product;
+    } else {
+      list.unshift(product);
+    }
+    setStorage(STORAGE_KEYS.PRODUCTS, list);
+    return product;
+  },
+  delete: (id: string): void => {
+    const list = MockProductStore.getAll().filter((p) => p.id !== id);
+    setStorage(STORAGE_KEYS.PRODUCTS, list);
+  },
+};
+
+// Orders API
+export const MockOrderStore = {
+  getAll: (): Order[] => {
+    initMockStorage();
+    return getStorage<Order[]>(STORAGE_KEYS.ORDERS, INITIAL_ORDERS);
+  },
+  getById: (id: string): Order | undefined => {
+    return MockOrderStore.getAll().find((o) => o.id === id || o.order_number === id);
+  },
+  getByUserId: (userId: string): Order[] => {
+    return MockOrderStore.getAll().filter((o) => o.user_id === userId);
+  },
+  create: (order: Order): Order => {
+    const list = MockOrderStore.getAll();
+    list.unshift(order);
+    setStorage(STORAGE_KEYS.ORDERS, list);
+    return order;
+  },
+  updateStatus: (orderId: string, status: OrderStatus): Order | undefined => {
+    const list = MockOrderStore.getAll();
+    const order = list.find((o) => o.id === orderId || o.order_number === orderId);
+    if (order) {
+      order.order_status = status;
+      order.updated_at = new Date().toISOString();
+      setStorage(STORAGE_KEYS.ORDERS, list);
+    }
+    return order;
+  },
+};
+
+// Reviews API
+export const MockReviewStore = {
+  getAll: (): Review[] => {
+    initMockStorage();
+    return getStorage<Review[]>(STORAGE_KEYS.REVIEWS, INITIAL_REVIEWS);
+  },
+  getByProductId: (productId: string): Review[] => {
+    return MockReviewStore.getAll().filter((r) => r.product_id === productId && !r.is_hidden);
+  },
+  getByUserId: (userId: string): Review[] => {
+    return MockReviewStore.getAll().filter((r) => r.user_id === userId);
+  },
+  create: (review: Review): Review => {
+    const list = MockReviewStore.getAll();
+    list.unshift(review);
+    setStorage(STORAGE_KEYS.REVIEWS, list);
+
+    // Also update product rating and count
+    const product = MockProductStore.getById(review.product_id);
+    if (product) {
+      const prodReviews = list.filter((r) => r.product_id === review.product_id);
+      const avg =
+        prodReviews.reduce((sum, r) => sum + r.rating, 0) / (prodReviews.length || 1);
+      product.review_count = prodReviews.length;
+      product.rating_avg = Number(avg.toFixed(1));
+      MockProductStore.save(product);
+    }
+
+    return review;
+  },
+  addReply: (reviewId: string, reply: string): Review | undefined => {
+    const list = MockReviewStore.getAll();
+    const item = list.find((r) => r.id === reviewId);
+    if (item) {
+      item.admin_reply = reply;
+      item.admin_replied_at = new Date().toISOString();
+      setStorage(STORAGE_KEYS.REVIEWS, list);
+    }
+    return item;
+  },
+  toggleHide: (reviewId: string): Review | undefined => {
+    const list = MockReviewStore.getAll();
+    const item = list.find((r) => r.id === reviewId);
+    if (item) {
+      item.is_hidden = !item.is_hidden;
+      setStorage(STORAGE_KEYS.REVIEWS, list);
+    }
+    return item;
+  },
+};
+
+// Points API
+export const MockPointStore = {
+  getByUserId: (userId: string): PointTransaction[] => {
+    initMockStorage();
+    const list = getStorage<PointTransaction[]>(STORAGE_KEYS.POINTS, INITIAL_POINT_TRANSACTIONS);
+    return list.filter((p) => p.user_id === userId);
+  },
+  getBalance: (userId: string): number => {
+    const transactions = MockPointStore.getByUserId(userId);
+    return transactions.reduce((acc, curr) => acc + curr.amount, 0);
+  },
+  addTransaction: (tx: Omit<PointTransaction, 'id' | 'balance_after' | 'created_at'>): PointTransaction => {
+    const list = getStorage<PointTransaction[]>(STORAGE_KEYS.POINTS, INITIAL_POINT_TRANSACTIONS);
+    const currentBalance = MockPointStore.getBalance(tx.user_id);
+    const newRecord: PointTransaction = {
+      ...tx,
+      id: `pt-${Date.now()}`,
+      balance_after: currentBalance + tx.amount,
+      created_at: new Date().toISOString(),
+    };
+    list.unshift(newRecord);
+    setStorage(STORAGE_KEYS.POINTS, list);
+
+    // Update profile balance
+    const profiles = getStorage<Profile[]>(STORAGE_KEYS.PROFILES, INITIAL_PROFILES);
+    const prof = profiles.find((p) => p.id === tx.user_id);
+    if (prof) {
+      prof.points_balance = newRecord.balance_after;
+      setStorage(STORAGE_KEYS.PROFILES, profiles);
+    }
+
+    return newRecord;
+  },
+};
+
+// Coupons API
+export const MockCouponStore = {
+  getAvailableCoupons: () => INITIAL_COUPONS,
+  getUserCoupons: (userId: string): UserCoupon[] => {
+    initMockStorage();
+    const list = getStorage<UserCoupon[]>(STORAGE_KEYS.USER_COUPONS, INITIAL_USER_COUPONS);
+    return list.filter((c) => c.user_id === userId);
+  },
+  markUsed: (userCouponId: string, orderId: string): void => {
+    const list = getStorage<UserCoupon[]>(STORAGE_KEYS.USER_COUPONS, INITIAL_USER_COUPONS);
+    const item = list.find((c) => c.id === userCouponId);
+    if (item) {
+      item.is_used = true;
+      item.used_at = new Date().toISOString();
+      item.order_id = orderId;
+      setStorage(STORAGE_KEYS.USER_COUPONS, list);
+    }
+  },
+};
+
+// Profiles / Auth API
+export const MockProfileStore = {
+  getCurrentUser: (): Profile => {
+    initMockStorage();
+    return getStorage<Profile>(STORAGE_KEYS.CURRENT_USER, INITIAL_PROFILES[1]);
+  },
+  setCurrentUser: (profile: Profile): void => {
+    setStorage(STORAGE_KEYS.CURRENT_USER, profile);
+  },
+  getAll: (): Profile[] => {
+    initMockStorage();
+    return getStorage<Profile[]>(STORAGE_KEYS.PROFILES, INITIAL_PROFILES);
+  },
+  updateProfile: (profile: Profile): Profile => {
+    const list = MockProfileStore.getAll();
+    const index = list.findIndex((p) => p.id === profile.id);
+    if (index >= 0) {
+      list[index] = profile;
+    } else {
+      list.push(profile);
+    }
+    setStorage(STORAGE_KEYS.PROFILES, list);
+    const current = MockProfileStore.getCurrentUser();
+    if (current && current.id === profile.id) {
+      MockProfileStore.setCurrentUser(profile);
+    }
+    return profile;
+  },
+};
+
+// Posts API
+export const MockPostStore = {
+  getAll: (): Post[] => {
+    initMockStorage();
+    return getStorage<Post[]>(STORAGE_KEYS.POSTS, INITIAL_POSTS);
+  },
+  getByBoard: (slug: string): Post[] => {
+    return MockPostStore.getAll().filter((p) => p.board_slug === slug);
+  },
+  create: (post: Omit<Post, 'id' | 'view_count' | 'created_at'>): Post => {
+    const list = MockPostStore.getAll();
+    const newPost: Post = {
+      ...post,
+      id: `post-${Date.now()}`,
+      view_count: 0,
+      created_at: new Date().toISOString(),
+    };
+    list.unshift(newPost);
+    setStorage(STORAGE_KEYS.POSTS, list);
+    return newPost;
+  },
+};
