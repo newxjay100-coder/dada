@@ -8,7 +8,7 @@ const STORIES = [
     category: 'STYLE GUIDE',
     title: 'THE ART OF MINIMAL TAILORING',
     subtitle: '과장되지 않은 정제된 실루엣과 고급 원사가 만들어내는 현대적 클래식의 미학',
-    image: 'https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?q=80&w=800&auto=format&fit=crop',
     link: '/magazine',
   },
   {
@@ -16,7 +16,7 @@ const STORIES = [
     category: 'BRAND STORY',
     title: 'ATELIER 82: 장인 정신의 재해석',
     subtitle: '파리지앵 감성과 한국 현대 테일러링이 조우하는 특별한 스튜디오 여정',
-    image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?q=80&w=800&auto=format&fit=crop',
     link: '/brands?brand=atelier-82',
   },
   {
@@ -24,7 +24,7 @@ const STORIES = [
     category: 'SEASON TREND',
     title: '2026 SPRING COLOR PALETTE: BURGUNDY & WARM BEIGE',
     subtitle: '부드러운 베이지와 깊은 버건디 포인트로 완성하는 데일리 럭셔리 스타일링',
-    image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800&auto=format&fit=crop',
     link: '/special/editorial',
   },
 ];

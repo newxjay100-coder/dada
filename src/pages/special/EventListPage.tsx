@@ -81,17 +81,17 @@ export const MagazineListPage: React.FC = () => {
             {
               title: '2026 SPRING MINIMAL ARCHIVE',
               desc: '빛과 그림자, 절제된 선의 미학으로 풀어낸 버진 울 컬렉션 화보',
-              img: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop',
+              img: 'https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800&auto=format&fit=crop',
             },
             {
               title: 'THE MODERN SUITING GUIDE',
               desc: '출근과 저녁 모임을 자유롭게 넘나드는 현대인을 위한 셋업 스타일링',
-              img: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=800&auto=format&fit=crop',
+              img: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=800&auto=format&fit=crop',
             },
             {
               title: 'CASHMERE ESSENTIALS',
               desc: '천연 몽골리안 캐시미어 원사의 촉감과 섬세한 컬러 팔레트',
-              img: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?q=80&w=800&auto=format&fit=crop',
+              img: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?q=80&w=800&auto=format&fit=crop',
             },
           ].map((mag, i) => (
             <div key={i} className="bg-white border border-neutral-200 overflow-hidden shadow-2xs group">
