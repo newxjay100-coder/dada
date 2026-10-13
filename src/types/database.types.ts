@@ -510,3 +510,17 @@ export interface FAQ {
   created_at?: string;
 }
 
+export interface MediaAsset {
+  id: string;
+  title: string;
+  file_name: string;
+  url: string;
+  bucket: 'products' | 'banners' | 'avatars' | 'editorial';
+  linked_type?: 'product' | 'event' | 'profile' | 'general';
+  linked_id?: string;
+  file_size?: number;
+  storage_source: 'supabase_storage' | 'supabase_db' | 'cloud_cdn';
+  created_at: string;
+}
+
+

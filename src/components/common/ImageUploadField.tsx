@@ -21,9 +21,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSource, setUploadSource] = useState<'supabase' | 'local' | 'url' | null>(() => {
     if (!value) return null;
-    if (value.startsWith('data:')) return 'local';
-    if (value.includes('supabase.co')) return 'supabase';
-    return 'url';
+    return 'supabase';
   });
   const [isUrlInputMode, setIsUrlInputMode] = useState(false);
   const [customUrl, setCustomUrl] = useState('');

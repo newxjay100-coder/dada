@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -15,7 +15,10 @@ import {
   Phone,
   Mail,
   Zap,
+  Database,
 } from 'lucide-react';
+import { isSupabaseReady } from '@/lib/supabase';
+import { SupabaseConfigModal } from '@/components/common/SupabaseConfigModal';
 
 export const RegisterPage: React.FC = () => {
   const [accountType, setAccountType] = useState<'customer' | 'admin'>('customer');
@@ -32,6 +35,18 @@ export const RegisterPage: React.FC = () => {
   const [termsConsent, setTermsConsent] = useState(true);
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [isSupabaseLive, setIsSupabaseLive] = useState(isSupabaseReady());
+
+  useEffect(() => {
+    const handleConfigChange = () => {
+      setIsSupabaseLive(isSupabaseReady());
+    };
+    window.addEventListener('supabase_config_changed', handleConfigChange);
+    return () => {
+      window.removeEventListener('supabase_config_changed', handleConfigChange);
+    };
+  }, []);
 
   // Field touched states for validation display
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -156,6 +171,12 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
+    if (!isSupabaseReady()) {
+      setIsConfigModalOpen(true);
+      showToast('Supabase Anon Key가 설정되지 않았습니다. 클라우드 연동 설정을 먼저 완료해주세요.', 'error');
+      return;
+    }
+
     setIsSubmitting(true);
     const res = await signup({
       login_id: loginId.trim(),
@@ -206,6 +227,35 @@ export const RegisterPage: React.FC = () => {
               ? '다써바 백오피스 ERP 총괄 관리 권한이 부여되는 계정입니다.'
               : '가입 즉시 5,000원 웰컴 적립금 및 10% 할인 쿠폰팩 지급'}
           </p>
+        </div>
+
+        {/* Supabase Cloud Live Status Banner */}
+        <div
+          onClick={() => setIsConfigModalOpen(true)}
+          className={`p-3 rounded-xl border text-xs cursor-pointer transition-all hover:scale-[1.01] flex items-center justify-between ${
+            isSupabaseLive
+              ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
+              : 'bg-amber-950/40 border-amber-500/60 text-amber-300 animate-pulse'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <Database className="w-4 h-4 shrink-0" />
+            <div>
+              <p className="font-bold">
+                {isSupabaseLive
+                  ? '⚡ Supabase Authentication & profiles 연동 활성'
+                  : '⚠️ Supabase Anon Key 등록 필요 (클릭하여 설정)'}
+              </p>
+              <p className="text-[10px] text-neutral-300 font-sans">
+                {isSupabaseLive
+                  ? '가입 시 계정이 Supabase auth.users 및 profiles 테이블에 실시간 저장됩니다.'
+                  : '가입 정보를 Supabase에 영구 저장하려면 프로젝트 Anon Key를 입력해주세요.'}
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-1 bg-black/40 border border-current rounded shrink-0">
+            {isSupabaseLive ? '연동 중' : '키 입력'}
+          </span>
         </div>
 
         {/* Member Type Switcher */}
@@ -627,6 +677,12 @@ export const RegisterPage: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      {/* Supabase Config Modal */}
+      <SupabaseConfigModal
+        isOpen={isConfigModalOpen}
+        onClose={() => setIsConfigModalOpen(false)}
+      />
     </div>
   );
 };

@@ -19,6 +19,7 @@ import {
   Menu,
   X,
   Cloud,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 export const AdminLayout: React.FC = () => {
@@ -29,6 +30,7 @@ export const AdminLayout: React.FC = () => {
   const adminMenus = [
     { label: '대시보드', path: '/admin', icon: LayoutDashboard, exact: true },
     { label: '⚡ Supabase 연동 센터', path: '/admin/supabase', icon: Cloud, highlight: true },
+    { label: '🖼️ 이미지 / 미디어 관리', path: '/admin/images', icon: ImageIcon, highlight: true },
     { label: '회원 관리', path: '/admin/members', icon: Users },
     { label: '상품 관리', path: '/admin/products', icon: Shirt },
     { label: '주문 관리', path: '/admin/orders', icon: ShoppingBag },

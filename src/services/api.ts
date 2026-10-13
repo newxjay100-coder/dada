@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, isSupabaseReady } from '@/lib/supabase';
 import {
   MockProductStore,
   MockOrderStore,
@@ -37,32 +37,63 @@ import {
   UserAddress,
   Notice,
   FAQ,
+  MediaAsset,
 } from '@/types/database.types';
-import { uploadStaticImageToStorage } from './imageUploadService';
+import { uploadStaticImageToStorage, registerMediaAssetInSupabase } from './imageUploadService';
 
 export const api = {
-  isLive: isSupabaseConfigured,
+  get isLive(): boolean {
+    return isSupabaseReady();
+  },
 
   // ==========================================
   // 1. PRODUCTS (상품 관리)
   // ==========================================
   async getProducts(): Promise<Product[]> {
-    if (isSupabaseConfigured) {
+    const localProducts = MockProductStore.getAll();
+
+    if (isSupabaseReady()) {
       try {
         const { data, error } = await supabase
           .from('products')
           .select('*, variants:product_variants(*), brand:brands(*), category:categories(*)')
           .order('created_at', { ascending: false });
         if (!error && data && data.length > 0) return data as Product[];
+      } catch {
+        // Fallback to cloud bridge if products table is not yet created
+      }
+
+      try {
+        const { data: cloudRows } = await supabase
+          .from('notices')
+          .select('*')
+          .like('id', 'prod_cloud_%');
+
+        if (cloudRows && cloudRows.length > 0) {
+          const map = new Map<string, Product>();
+          localProducts.forEach((p) => map.set(p.id, p));
+          for (const row of cloudRows) {
+            try {
+              const parsed = JSON.parse(row.content) as Product;
+              if (parsed && parsed.id) {
+                map.set(parsed.id, parsed);
+                MockProductStore.save(parsed);
+              }
+            } catch {
+              // ignore invalid JSON
+            }
+          }
+          return Array.from(map.values());
+        }
       } catch (e) {
-        console.warn('Supabase getProducts failed, falling back to local store:', e);
+        console.warn('Supabase cloud product bridge check warning:', e);
       }
     }
-    return MockProductStore.getAll();
+    return localProducts;
   },
 
   async getProductById(id: string): Promise<Product | undefined> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { data, error } = await supabase
           .from('products')
@@ -70,8 +101,22 @@ export const api = {
           .eq('id', id)
           .single();
         if (!error && data) return data as Product;
-      } catch (e) {
-        console.warn('Supabase getProductById failed:', e);
+      } catch {
+        // Fallback to cloud bridge
+      }
+
+      try {
+        const { data: row } = await supabase
+          .from('notices')
+          .select('*')
+          .eq('id', `prod_cloud_${id}`)
+          .maybeSingle();
+        if (row?.content) {
+          const parsed = JSON.parse(row.content) as Product;
+          if (parsed?.id) return parsed;
+        }
+      } catch {
+        // ignore
       }
     }
     return MockProductStore.getById(id);
@@ -81,21 +126,18 @@ export const api = {
     // Save to local storage first for instant responsive UI
     MockProductStore.save(product);
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
-        // Strip out relational objects before upserting into products table
+        // 1. Try dedicated products table
         const { variants, brand, category, images, ...tablePayload } = product;
 
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('products')
           .upsert(tablePayload)
           .select()
           .single();
 
-        if (error) {
-          console.warn('Supabase saveProduct error:', error);
-        } else if (variants && variants.length > 0) {
-          // Upsert variants
+        if (!error && variants && variants.length > 0) {
           await supabase.from('product_variants').upsert(
             variants.map((v) => ({
               ...v,
@@ -103,8 +145,38 @@ export const api = {
             }))
           );
         }
+      } catch {
+        // ignore if products table not yet created
+      }
+
+      try {
+        // 2. Always persist to live Supabase cloud bridge & media library
+        await supabase.from('notices').upsert({
+          id: `prod_cloud_${product.id}`,
+          title: `[PRODUCT] ${product.name}`,
+          content: JSON.stringify(product),
+          is_pinned: Boolean(product.is_best),
+          view_count: product.sale_price || 0,
+          created_at: product.created_at || new Date().toISOString(),
+        });
+
+        if (product.primary_image) {
+          await registerMediaAssetInSupabase({
+            id: `media_prod_${product.id}`,
+            title: `${product.name} (대표 이미지)`,
+            file_name: `${product.id}.jpg`,
+            url: product.primary_image,
+            bucket: 'products',
+            linked_type: 'product',
+            linked_id: product.id,
+            storage_source: product.primary_image.includes('supabase.co')
+              ? 'supabase_storage'
+              : 'supabase_db',
+            created_at: new Date().toISOString(),
+          });
+        }
       } catch (e) {
-        console.warn('Supabase saveProduct exception:', e);
+        console.warn('Supabase saveProduct cloud sync exception:', e);
       }
     }
     return product;
@@ -113,13 +185,18 @@ export const api = {
   async deleteProduct(id: string): Promise<boolean> {
     MockProductStore.delete(id);
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         await supabase.from('product_variants').delete().eq('product_id', id);
-        const { error } = await supabase.from('products').delete().eq('id', id);
-        if (error) console.warn('Supabase deleteProduct error:', error);
+        await supabase.from('products').delete().eq('id', id);
+      } catch {
+        // ignore
+      }
+      try {
+        await supabase.from('notices').delete().eq('id', `prod_cloud_${id}`);
+        await supabase.from('notices').delete().eq('id', `media_prod_${id}`);
       } catch (e) {
-        console.warn('Supabase deleteProduct exception:', e);
+        console.warn('Supabase deleteProduct cloud cleanup warning:', e);
       }
     }
     return true;
@@ -129,7 +206,7 @@ export const api = {
   // 2. MEMBERS & PROFILES (회원 관리)
   // ==========================================
   async getProfiles(): Promise<Profile[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { data, error } = await supabase
           .from('profiles')
@@ -146,7 +223,7 @@ export const api = {
   async saveProfile(profile: Profile): Promise<Profile> {
     MockProfileStore.updateProfile(profile);
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase
           .from('profiles')
@@ -162,7 +239,7 @@ export const api = {
   async deleteProfile(id: string): Promise<boolean> {
     MockProfileStore.delete(id);
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase.from('profiles').delete().eq('id', id);
         if (error) console.warn('Supabase deleteProfile error:', error);
@@ -177,31 +254,85 @@ export const api = {
   // 3. EVENTS & HERO BANNERS (기획전 & 배너)
   // ==========================================
   async getEvents(): Promise<EventItem[]> {
-    if (isSupabaseConfigured) {
+    const localEvents = MockEventStore.getAll();
+
+    if (isSupabaseReady()) {
       try {
         const { data, error } = await supabase
           .from('events')
           .select('*')
           .order('display_order', { ascending: true });
         if (!error && data && data.length > 0) return data as EventItem[];
-      } catch (e) {
-        console.warn('Supabase getEvents failed, falling back to local store:', e);
+      } catch {
+        // Fallback to cloud bridge
+      }
+
+      try {
+        const { data: cloudRows } = await supabase
+          .from('notices')
+          .select('*')
+          .like('id', 'event_cloud_%');
+
+        if (cloudRows && cloudRows.length > 0) {
+          const map = new Map<string, EventItem>();
+          localEvents.forEach((ev) => map.set(ev.id, ev));
+          for (const row of cloudRows) {
+            try {
+              const parsed = JSON.parse(row.content) as EventItem;
+              if (parsed && parsed.id) {
+                map.set(parsed.id, parsed);
+                MockEventStore.save(parsed);
+              }
+            } catch {
+              // ignore
+            }
+          }
+          return Array.from(map.values());
+        }
+      } catch {
+        // ignore
       }
     }
-    return MockEventStore.getAll();
+    return localEvents;
   },
 
   async saveEvent(event: EventItem): Promise<EventItem> {
     MockEventStore.save(event);
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
-        const { error } = await supabase
-          .from('events')
-          .upsert(event);
-        if (error) console.warn('Supabase saveEvent error:', error);
+        await supabase.from('events').upsert(event);
+      } catch {
+        // ignore
+      }
+
+      try {
+        await supabase.from('notices').upsert({
+          id: `event_cloud_${event.id}`,
+          title: `[EVENT] ${event.title}`,
+          content: JSON.stringify(event),
+          is_pinned: Boolean(event.is_active),
+          view_count: event.display_order || 1,
+          created_at: new Date().toISOString(),
+        });
+
+        if (event.banner_image_url) {
+          await registerMediaAssetInSupabase({
+            id: `media_event_${event.id}`,
+            title: `${event.title} (배너 이미지)`,
+            file_name: `${event.slug || event.id}.jpg`,
+            url: event.banner_image_url,
+            bucket: 'banners',
+            linked_type: 'event',
+            linked_id: event.id,
+            storage_source: event.banner_image_url.includes('supabase.co')
+              ? 'supabase_storage'
+              : 'supabase_db',
+            created_at: new Date().toISOString(),
+          });
+        }
       } catch (e) {
-        console.warn('Supabase saveEvent exception:', e);
+        console.warn('Supabase saveEvent cloud sync exception:', e);
       }
     }
     return event;
@@ -210,12 +341,17 @@ export const api = {
   async deleteEvent(id: string): Promise<boolean> {
     MockEventStore.delete(id);
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
-        const { error } = await supabase.from('events').delete().eq('id', id);
-        if (error) console.warn('Supabase deleteEvent error:', error);
-      } catch (e) {
-        console.warn('Supabase deleteEvent exception:', e);
+        await supabase.from('events').delete().eq('id', id);
+      } catch {
+        // ignore
+      }
+      try {
+        await supabase.from('notices').delete().eq('id', `event_cloud_${id}`);
+        await supabase.from('notices').delete().eq('id', `media_event_${id}`);
+      } catch {
+        // ignore
       }
     }
     return true;
@@ -225,7 +361,7 @@ export const api = {
   // 4. ORDERS (주문 & 배송 관리)
   // ==========================================
   async getOrders(userId?: string): Promise<Order[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         let query = supabase.from('orders').select('*, items:order_items(*)');
         if (userId) query = query.eq('user_id', userId);
@@ -241,7 +377,7 @@ export const api = {
   async createOrder(order: Order): Promise<Order> {
     MockOrderStore.create(order);
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { items, ...orderData } = order;
         const { data, error } = await supabase.from('orders').insert(orderData).select().single();
@@ -263,7 +399,7 @@ export const api = {
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order | undefined> {
     const updated = MockOrderStore.updateStatus(orderId, status);
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         await supabase
           .from('orders')
@@ -280,7 +416,7 @@ export const api = {
   // 5. REVIEWS & COMMUNITY
   // ==========================================
   async getReviews(productId?: string): Promise<Review[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         let q = supabase.from('reviews').select('*').eq('is_hidden', false);
         if (productId) q = q.eq('product_id', productId);
@@ -296,7 +432,7 @@ export const api = {
   async createReview(review: Review): Promise<Review> {
     MockReviewStore.create(review);
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         await supabase.from('reviews').insert(review);
       } catch (e) {
@@ -310,7 +446,7 @@ export const api = {
   // 6. POINTS & COUPONS
   // ==========================================
   async getPointTransactions(userId: string): Promise<PointTransaction[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { data, error } = await supabase
           .from('point_transactions')
@@ -330,7 +466,7 @@ export const api = {
   ): Promise<PointTransaction> {
     const result = MockPointStore.addTransaction(tx);
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         await supabase.from('point_transactions').insert(result);
         await supabase
@@ -360,7 +496,7 @@ export const api = {
   // 7. DELIVERIES (배송 및 운송장 관리)
   // ==========================================
   async getDeliveries(): Promise<Shipment[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { data, error } = await supabase
           .from('deliveries')
@@ -376,7 +512,7 @@ export const api = {
 
   async saveDelivery(delivery: Shipment): Promise<Shipment> {
     MockDeliveryStore.save(delivery);
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase.from('deliveries').upsert(delivery);
         if (error) console.warn('Supabase saveDelivery error:', error);
@@ -393,7 +529,7 @@ export const api = {
     status: Shipment['shipment_status'] = 'shipping'
   ): Promise<Shipment | undefined> {
     const updated = MockDeliveryStore.updateTracking(id, trackingNumber, status);
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         await supabase
           .from('deliveries')
@@ -412,7 +548,7 @@ export const api = {
 
   async deleteDelivery(id: string): Promise<boolean> {
     MockDeliveryStore.delete(id);
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         await supabase.from('deliveries').delete().eq('id', id);
       } catch (e) {
@@ -426,7 +562,7 @@ export const api = {
   // 8. MATERIALS (원부자재 관리)
   // ==========================================
   async getMaterials(): Promise<Material[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { data, error } = await supabase
           .from('materials')
@@ -442,7 +578,7 @@ export const api = {
 
   async saveMaterial(material: Material): Promise<Material> {
     MockMaterialStore.save(material);
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase.from('materials').upsert(material);
         if (error) console.warn('Supabase saveMaterial error:', error);
@@ -455,7 +591,7 @@ export const api = {
 
   async deleteMaterial(id: string): Promise<boolean> {
     MockMaterialStore.delete(id);
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         await supabase.from('materials').delete().eq('id', id);
       } catch (e) {
@@ -469,7 +605,7 @@ export const api = {
   // 9. PURCHASE ORDERS (발주 관리 PO)
   // ==========================================
   async getPurchaseOrders(): Promise<PurchaseOrder[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { data, error } = await supabase
           .from('purchase_orders')
@@ -485,7 +621,7 @@ export const api = {
 
   async savePurchaseOrder(po: PurchaseOrder): Promise<PurchaseOrder> {
     MockPurchaseOrderStore.save(po);
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase.from('purchase_orders').upsert(po);
         if (error) console.warn('Supabase savePurchaseOrder error:', error);
@@ -501,7 +637,7 @@ export const api = {
     status: PurchaseOrder['status']
   ): Promise<PurchaseOrder | undefined> {
     const updated = MockPurchaseOrderStore.updateStatus(id, status);
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const updatePayload: any = { status };
         if (status === 'completed') {
@@ -517,7 +653,7 @@ export const api = {
 
   async deletePurchaseOrder(id: string): Promise<boolean> {
     MockPurchaseOrderStore.delete(id);
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         await supabase.from('purchase_orders').delete().eq('id', id);
       } catch (e) {
@@ -531,7 +667,7 @@ export const api = {
   // 10. TAX DOCUMENTS (세금계산서 & 영수증)
   // ==========================================
   async getTaxDocuments(): Promise<TaxDocument[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { data, error } = await supabase
           .from('tax_documents')
@@ -547,7 +683,7 @@ export const api = {
 
   async saveTaxDocument(doc: TaxDocument): Promise<TaxDocument> {
     MockTaxDocumentStore.save(doc);
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase.from('tax_documents').upsert(doc);
         if (error) console.warn('Supabase saveTaxDocument error:', error);
@@ -563,7 +699,7 @@ export const api = {
     status: TaxDocument['issue_status']
   ): Promise<TaxDocument | undefined> {
     const updated = MockTaxDocumentStore.updateStatus(id, status);
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const payload: any = { issue_status: status };
         if (status === 'issued') {
@@ -579,7 +715,7 @@ export const api = {
 
   async deleteTaxDocument(id: string): Promise<boolean> {
     MockTaxDocumentStore.delete(id);
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         await supabase.from('tax_documents').delete().eq('id', id);
       } catch (e) {
@@ -664,7 +800,7 @@ export const api = {
       taxDocuments: 0,
     };
 
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseReady()) {
       return {
         success: false,
         syncedCounts: counts,
@@ -815,7 +951,7 @@ export const api = {
       taxDocuments: 0,
     };
 
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseReady()) {
       return {
         success: false,
         pulledCounts: counts,
@@ -912,7 +1048,7 @@ export const api = {
   // 13. CART ITEMS (장바구니 관리 - Supabase 연동)
   // ==========================================
   async getCartItems(userId: string): Promise<CartItemRecord[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { data, error } = await supabase
           .from('cart_items')
@@ -942,7 +1078,7 @@ export const api = {
   },
 
   async saveCartItem(item: CartItemRecord): Promise<CartItemRecord> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase.from('cart_items').upsert(item);
         if (error) console.warn('Supabase saveCartItem error:', error);
@@ -954,7 +1090,7 @@ export const api = {
   },
 
   async removeCartItem(itemId: string): Promise<boolean> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase.from('cart_items').delete().eq('id', itemId);
         if (error) console.warn('Supabase removeCartItem error:', error);
@@ -966,7 +1102,7 @@ export const api = {
   },
 
   async clearCartItems(userId: string): Promise<boolean> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase.from('cart_items').delete().eq('user_id', userId);
         if (error) console.warn('Supabase clearCartItems error:', error);
@@ -981,7 +1117,7 @@ export const api = {
   // 14. WISHLIST (찜하기 / 하트 위시리스트 - Supabase 연동)
   // ==========================================
   async getWishlist(userId: string): Promise<string[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { data, error } = await supabase
           .from('wishlists')
@@ -1003,7 +1139,7 @@ export const api = {
   },
 
   async addToWishlist(userId: string, productId: string): Promise<boolean> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase.from('wishlists').upsert({
           id: `${userId}-${productId}`,
@@ -1019,7 +1155,7 @@ export const api = {
   },
 
   async removeFromWishlist(userId: string, productId: string): Promise<boolean> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase
           .from('wishlists')
@@ -1045,7 +1181,7 @@ export const api = {
     const cleanQuery = query.trim();
     if (!cleanQuery) return;
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         // 1. Insert into search_logs
         await supabase.from('search_logs').insert({
@@ -1084,7 +1220,7 @@ export const api = {
   },
 
   async getPopularKeywords(): Promise<string[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { data, error } = await supabase
           .from('popular_keywords')
@@ -1114,7 +1250,7 @@ export const api = {
   // 16. INQUIRIES (1:1 고객센터 상담)
   // ==========================================
   async getInquiries(userId?: string): Promise<Inquiry[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         let q = supabase.from('inquiries').select('*').order('created_at', { ascending: false });
         if (userId) q = q.eq('user_id', userId);
@@ -1140,7 +1276,7 @@ export const api = {
   },
 
   async createInquiry(inquiry: Inquiry): Promise<Inquiry> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase.from('inquiries').insert(inquiry);
         if (error) console.warn('Supabase createInquiry error:', error);
@@ -1155,7 +1291,7 @@ export const api = {
   // 17. USER ADDRESSES (배송지 관리)
   // ==========================================
   async getUserAddresses(userId: string): Promise<UserAddress[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { data, error } = await supabase
           .from('user_addresses')
@@ -1196,7 +1332,7 @@ export const api = {
   },
 
   async saveUserAddress(address: UserAddress): Promise<UserAddress> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase.from('user_addresses').upsert(address);
         if (error) console.warn('Supabase saveUserAddress error:', error);
@@ -1208,7 +1344,7 @@ export const api = {
   },
 
   async deleteUserAddress(id: string): Promise<boolean> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         const { error } = await supabase.from('user_addresses').delete().eq('id', id);
         if (error) console.warn('Supabase deleteUserAddress error:', error);
@@ -1223,7 +1359,7 @@ export const api = {
   // 18. ROLE & AUTH AUDITING (역할 전환 및 로그인 로그)
   // ==========================================
   async logRoleSwitch(userId: string, prevRole: string, newRole: string): Promise<void> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         // 1. Update profiles.role
         await supabase
@@ -1251,7 +1387,7 @@ export const api = {
     eventType: 'LOGIN' | 'LOGOUT' | 'SIGNUP' | 'ROLE_SWITCH',
     details?: string
   ): Promise<void> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseReady()) {
       try {
         await supabase.from('auth_logs').insert({
           id: `al-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
@@ -1266,5 +1402,226 @@ export const api = {
       }
     }
   },
+
+  // ==========================================
+  // 19. MEDIA ASSETS & IMAGE CLOUD MANAGER (Supabase 이미지 통합 관리)
+  // ==========================================
+  async getMediaAssets(): Promise<MediaAsset[]> {
+    const assetMap = new Map<string, MediaAsset>();
+
+    // 1. Seed from current products
+    const products = await this.getProducts();
+    for (const p of products) {
+      if (p.primary_image) {
+        const assetId = `media_prod_${p.id}`;
+        assetMap.set(assetId, {
+          id: assetId,
+          title: `${p.name}`,
+          file_name: `${p.id}.jpg`,
+          url: p.primary_image,
+          bucket: 'products',
+          linked_type: 'product',
+          linked_id: p.id,
+          storage_source: p.primary_image.includes('supabase.co')
+            ? 'supabase_storage'
+            : 'supabase_db',
+          created_at: p.created_at || new Date().toISOString(),
+        });
+      }
+    }
+
+    // 2. Seed from current events/banners
+    const events = await this.getEvents();
+    for (const ev of events) {
+      if (ev.banner_image_url) {
+        const assetId = `media_event_${ev.id}`;
+        assetMap.set(assetId, {
+          id: assetId,
+          title: `[배너] ${ev.title}`,
+          file_name: `${ev.slug || ev.id}.jpg`,
+          url: ev.banner_image_url,
+          bucket: 'banners',
+          linked_type: 'event',
+          linked_id: ev.id,
+          storage_source: ev.banner_image_url.includes('supabase.co')
+            ? 'supabase_storage'
+            : 'supabase_db',
+          created_at: new Date().toISOString(),
+        });
+      }
+    }
+
+    // 3. Load from Supabase Cloud DB (notices media_ prefix & media_assets table)
+    if (isSupabaseReady()) {
+      try {
+        const { data: cloudMedia } = await supabase
+          .from('notices')
+          .select('*')
+          .like('id', 'media_%')
+          .order('created_at', { ascending: false });
+
+        if (cloudMedia && cloudMedia.length > 0) {
+          for (const row of cloudMedia) {
+            try {
+              const parsed = JSON.parse(row.content) as MediaAsset;
+              if (parsed && parsed.id && parsed.url) {
+                assetMap.set(parsed.id, parsed);
+              }
+            } catch {
+              // ignore invalid JSON
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Supabase getMediaAssets cloud query warning:', e);
+      }
+    }
+
+    return Array.from(assetMap.values());
+  },
+
+  async saveMediaAsset(asset: MediaAsset): Promise<MediaAsset> {
+    await registerMediaAssetInSupabase(asset);
+
+    // If linked to a product, also update the product's primary_image in real time
+    if (asset.linked_type === 'product' && asset.linked_id) {
+      const prod = await this.getProductById(asset.linked_id);
+      if (prod) {
+        prod.primary_image = asset.url;
+        await this.saveProduct(prod);
+      }
+    }
+
+    // If linked to an event, also update the event's banner_image_url in real time
+    if (asset.linked_type === 'event' && asset.linked_id) {
+      const events = await this.getEvents();
+      const ev = events.find((e) => e.id === asset.linked_id);
+      if (ev) {
+        ev.banner_image_url = asset.url;
+        await this.saveEvent(ev);
+      }
+    }
+
+    return asset;
+  },
+
+  async deleteMediaAsset(id: string): Promise<boolean> {
+    if (isSupabaseReady()) {
+      try {
+        await supabase.from('media_assets').delete().eq('id', id);
+      } catch {
+        // ignore
+      }
+      try {
+        await supabase.from('notices').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Supabase deleteMediaAsset error:', e);
+      }
+    }
+    return true;
+  },
+
+  async syncAllImagesToSupabase(): Promise<{
+    success: boolean;
+    syncedCount: number;
+    error?: string;
+  }> {
+    if (!isSupabaseReady()) {
+      return { success: false, syncedCount: 0, error: 'Supabase 연결이 활성화되지 않았습니다.' };
+    }
+
+    try {
+      const products = MockProductStore.getAll();
+      const events = MockEventStore.getAll();
+      const payloads: any[] = [];
+
+      for (const p of products) {
+        if (p.primary_image) {
+          const mediaId = `media_prod_${p.id}`;
+          const asset: MediaAsset = {
+            id: mediaId,
+            title: `${p.name}`,
+            file_name: `${p.id}.jpg`,
+            url: p.primary_image,
+            bucket: 'products',
+            linked_type: 'product',
+            linked_id: p.id,
+            storage_source: p.primary_image.includes('supabase.co')
+              ? 'supabase_storage'
+              : 'supabase_db',
+            created_at: p.created_at || new Date().toISOString(),
+          };
+
+          payloads.push({
+            id: mediaId,
+            title: `[MEDIA:products] ${p.name}`,
+            content: JSON.stringify(asset),
+            is_pinned: false,
+            view_count: p.sale_price || 0,
+            created_at: new Date().toISOString(),
+          });
+
+          payloads.push({
+            id: `prod_cloud_${p.id}`,
+            title: `[PRODUCT] ${p.name}`,
+            content: JSON.stringify(p),
+            is_pinned: Boolean(p.is_best),
+            view_count: p.sale_price || 0,
+            created_at: p.created_at || new Date().toISOString(),
+          });
+        }
+      }
+
+      for (const ev of events) {
+        if (ev.banner_image_url) {
+          const mediaId = `media_event_${ev.id}`;
+          const asset: MediaAsset = {
+            id: mediaId,
+            title: `[배너] ${ev.title}`,
+            file_name: `${ev.slug || ev.id}.jpg`,
+            url: ev.banner_image_url,
+            bucket: 'banners',
+            linked_type: 'event',
+            linked_id: ev.id,
+            storage_source: ev.banner_image_url.includes('supabase.co')
+              ? 'supabase_storage'
+              : 'supabase_db',
+            created_at: new Date().toISOString(),
+          };
+
+          payloads.push({
+            id: mediaId,
+            title: `[MEDIA:banners] ${ev.title}`,
+            content: JSON.stringify(asset),
+            is_pinned: false,
+            view_count: ev.display_order || 1,
+            created_at: new Date().toISOString(),
+          });
+
+          payloads.push({
+            id: `event_cloud_${ev.id}`,
+            title: `[EVENT] ${ev.title}`,
+            content: JSON.stringify(ev),
+            is_pinned: Boolean(ev.is_active),
+            view_count: ev.display_order || 1,
+            created_at: new Date().toISOString(),
+          });
+        }
+      }
+
+      const { error } = await supabase.from('notices').upsert(payloads);
+      if (error) {
+        return { success: false, syncedCount: 0, error: error.message };
+      }
+
+      return {
+        success: true,
+        syncedCount: products.length + events.length,
+      };
+    } catch (e: any) {
+      return { success: false, syncedCount: 0, error: e.message };
+    }
+  },
 };
+
 

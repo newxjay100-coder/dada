@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Search,
@@ -16,7 +16,8 @@ import { useWishlist } from '@/context/WishlistContext';
 import { MegaMenu } from './MegaMenu';
 import { MobileCategoryDrawer } from './MobileCategoryDrawer';
 import { SearchModal } from '../common/SearchModal';
-import { isSupabaseConfigured } from '@/lib/supabase';
+import { SupabaseConfigModal } from '../common/SupabaseConfigModal';
+import { isSupabaseConfigured, isSupabaseReady } from '@/lib/supabase';
 import { api } from '@/services/api';
 
 export const Header: React.FC = () => {
@@ -26,9 +27,21 @@ export const Header: React.FC = () => {
   const [activeMegaCategory, setActiveMegaCategory] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [isLive, setIsLive] = useState(isSupabaseReady());
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const handleConfigChange = () => {
+      setIsLive(isSupabaseReady());
+    };
+    window.addEventListener('supabase_config_changed', handleConfigChange);
+    return () => {
+      window.removeEventListener('supabase_config_changed', handleConfigChange);
+    };
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,20 +77,22 @@ export const Header: React.FC = () => {
             <span className="hidden sm:inline font-mono tracking-wide text-neutral-400">
               ⚡ DASSOBA CYBER STREETWEAR // 2077
             </span>
-            <span
-              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
-                isSupabaseConfigured
-                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
-                  : 'bg-cyan-950 text-cyan-300 border border-cyan-500/40'
+            <button
+              onClick={() => setIsConfigModalOpen(true)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded font-mono text-[10px] font-bold cursor-pointer transition-all hover:scale-105 ${
+                isLive
+                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-900/50 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                  : 'bg-amber-950/80 text-amber-300 border border-amber-500/60 hover:bg-amber-900/50 shadow-[0_0_10px_rgba(245,158,11,0.2)] animate-pulse'
               }`}
+              title="Supabase 클라우드 연동 상태 (클릭하여 설정)"
             >
               <span
-                className={`w-1.5 h-1.5 rounded-full animate-ping ${
-                  isSupabaseConfigured ? 'bg-emerald-400' : 'bg-cyan-400'
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isLive ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'
                 }`}
               />
-              {isSupabaseConfigured ? 'CORE: LIVE' : 'CYBER_DEMO'}
-            </span>
+              <span>{isLive ? 'CORE: LIVE' : '⚠️ SUPABASE 키 설정 필요'}</span>
+            </button>
           </div>
 
           {/* Right: User Utility Actions */}
@@ -322,6 +337,12 @@ export const Header: React.FC = () => {
       <SearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
+      />
+
+      {/* Supabase Cloud Configuration Modal */}
+      <SupabaseConfigModal
+        isOpen={isConfigModalOpen}
+        onClose={() => setIsConfigModalOpen(false)}
       />
     </header>
   );

@@ -1,6 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const defaultUrl = 'https://gseueojxksbhbgvisshq.supabase.co';
+const defaultAnonKey =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzZXVlb2p4a3NiaGJndmlzc2hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjU5ODAsImV4cCI6MjEwNjg0MTk4MH0.OYM9CwrRd01j7bFGxdUez3hPTRTf6LnzLM8iFuoKeEM';
 
 function getStoredUrl(): string {
   if (typeof window !== 'undefined') {
@@ -15,7 +17,7 @@ function getStoredAnonKey(): string {
     const stored = localStorage.getItem('dassoba_supabase_anon_key');
     if (stored && stored.trim().length > 10) return stored.trim();
   }
-  return import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+  return import.meta.env.VITE_SUPABASE_ANON_KEY || defaultAnonKey;
 }
 
 let activeUrl = getStoredUrl();
@@ -63,6 +65,10 @@ export function getSupabaseConnectionInfo() {
   };
 }
 
+export function isSupabaseReady(): boolean {
+  return checkIsConfigured(activeAnonKey);
+}
+
 /**
  * Dynamically updates the Supabase URL and Anon Key in runtime and localStorage
  */
@@ -82,6 +88,19 @@ export function updateSupabaseConfig(url: string, anonKey: string): boolean {
       } else {
         localStorage.removeItem('dassoba_supabase_anon_key');
       }
+
+      // Persist to .env file directly via dev server endpoint
+      fetch('/api/save-supabase-env', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: trimmedUrl, anonKey: trimmedKey }),
+      }).catch((e) => console.warn('Could not persist to .env:', e));
+
+      window.dispatchEvent(
+        new CustomEvent('supabase_config_changed', {
+          detail: { isConfigured: isSupabaseConfigured, url: activeUrl },
+        })
+      );
     }
 
     currentClient = buildClient(activeUrl, activeAnonKey);
@@ -101,7 +120,7 @@ export async function testSupabaseConnection(): Promise<{
   tables?: { [name: string]: boolean };
   latencyMs?: number;
 }> {
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseReady()) {
     return {
       ok: false,
       message: 'Supabase Anon Key가 아직 설정되지 않았습니다. 관리자 센터에서 키를 등록해주세요.',

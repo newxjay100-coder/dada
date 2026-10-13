@@ -33,6 +33,57 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- AUTOMATIC PROFILE SYNC TRIGGER FROM auth.users
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (
+    id,
+    login_id,
+    email,
+    name,
+    phone,
+    birthday,
+    gender,
+    member_grade,
+    role,
+    points_balance,
+    status,
+    marketing_consent,
+    terms_consent,
+    created_at,
+    updated_at
+  ) VALUES (
+    NEW.id::text,
+    COALESCE(NEW.raw_user_meta_data->>'login_id', split_part(NEW.email, '@', 1)),
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'name', '고객님'),
+    COALESCE(NEW.raw_user_meta_data->>'phone', '010-0000-0000'),
+    NEW.raw_user_meta_data->>'birthday',
+    NEW.raw_user_meta_data->>'gender',
+    CASE WHEN (NEW.raw_user_meta_data->>'role') = 'admin' THEN 'VVIP' ELSE 'BRONZE' END,
+    COALESCE(NEW.raw_user_meta_data->>'role', 'customer'),
+    CASE WHEN (NEW.raw_user_meta_data->>'role') = 'admin' THEN 50000 ELSE 5000 END,
+    'active',
+    COALESCE((NEW.raw_user_meta_data->>'marketing_consent')::boolean, false),
+    true,
+    now(),
+    now()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    phone = EXCLUDED.phone,
+    role = EXCLUDED.role,
+    updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- ROLE AUDIT LOGS (관리자 / 유저 역할 전환 및 권한 이력)
 CREATE TABLE IF NOT EXISTS public.role_audit_logs (
   id TEXT PRIMARY KEY,
