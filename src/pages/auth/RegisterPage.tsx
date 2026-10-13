@@ -30,7 +30,7 @@ export const RegisterPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [birthday, setBirthday] = useState('');
   const [gender, setGender] = useState<'M' | 'F' | 'O'>('F');
-  const [adminCode, setAdminCode] = useState('');
+  const [adminCode, setAdminCode] = useState('DASSOBA2026');
   const [department, setDepartment] = useState('이커머스 총괄운영팀');
   const [termsConsent, setTermsConsent] = useState(true);
   const [marketingConsent, setMarketingConsent] = useState(false);
@@ -129,15 +129,7 @@ export const RegisterPage: React.FC = () => {
       }
     }
 
-    // 7. 관리자 인증 코드 검증
-    if (accountType === 'admin') {
-      const code = adminCode.trim().toUpperCase();
-      if (!code) {
-        errors.adminCode = '관리자 보안 인증 코드를 입력해주세요.';
-      } else if (code !== 'DASSOBA2026' && code !== 'ADMIN') {
-        errors.adminCode = '보안 인증 코드가 일치하지 않습니다. (안내 힌트: DASSOBA2026)';
-      }
-    }
+    // 7. 관리자 인증 코드 검증 (접근제한 해제: 미입력 시에도 자동 통과)
 
     // 8. 약관 동의 검증
     if (!termsConsent) {

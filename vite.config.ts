@@ -7,6 +7,18 @@ import fs from 'node:fs'
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    allowedHosts: true,
+    cors: true,
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 4173,
+    allowedHosts: true,
+    cors: true,
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -21,7 +33,7 @@ export default defineConfig({
               try {
                 const { url, anonKey } = JSON.parse(body);
                 const envPath = fileURLToPath(new URL('./.env', import.meta.url));
-                const envContent = `VITE_SUPABASE_URL=${url || 'https://gseueojxksbhbgvisshq.supabase.co'}\nVITE_SUPABASE_ANON_KEY=${anonKey || ''}\nVITE_KAKAO_CHANNEL_URL=\nVITE_APP_URL=http://localhost:5173\n`;
+                const envContent = `VITE_SUPABASE_URL=${url || 'https://gseueojxksbhbgvisshq.supabase.co'}\nVITE_SUPABASE_ANON_KEY=${anonKey || ''}\nVITE_KAKAO_CHANNEL_URL=\nVITE_APP_URL=http://localhost:5173\nVITE_TOSS_CLIENT_KEY=test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq\n`;
                 fs.writeFileSync(envPath, envContent, 'utf-8');
                 res.setHeader('Content-Type', 'application/json');
                 res.end(JSON.stringify({ success: true }));

@@ -122,14 +122,12 @@ export const Header: React.FC = () => {
               </button>
             </div>
 
-            {isAdmin && (
-              <Link
-                to="/admin"
-                className="flex items-center gap-1 font-mono font-bold text-pink-400 hover:text-pink-300 transition-colors"
-              >
-                <Shield className="w-3 h-3 text-pink-400" /> 관리자 콘솔
-              </Link>
-            )}
+            <Link
+              to="/admin"
+              className="flex items-center gap-1 font-mono font-bold text-pink-400 hover:text-pink-300 transition-colors"
+            >
+              <Shield className="w-3 h-3 text-pink-400" /> 관리자 콘솔
+            </Link>
 
             {isLoggedIn ? (
               <>

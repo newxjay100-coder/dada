@@ -199,18 +199,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const isAdminAccount = input.role === 'admin';
 
-      // Check admin security code
-      if (isAdminAccount && input.admin_code) {
-        const trimmedCode = input.admin_code.trim().toUpperCase();
-        if (trimmedCode !== 'DASSOBA2026' && trimmedCode !== 'ADMIN') {
-          setIsLoading(false);
-          return {
-            success: false,
-            message: '관리자 보안 인증 코드가 올바르지 않습니다. (인증 힌트: DASSOBA2026)',
-          };
-        }
-      }
-
       // 1. Check Supabase connection readiness
       if (!isSupabaseReady()) {
         setIsLoading(false);

@@ -42,56 +42,7 @@ export const AdminLayout: React.FC = () => {
     { label: '이벤트 & 기획전', path: '/admin/events', icon: Sparkles },
   ];
 
-  // ==========================================
-  // Strict Admin Access Control (단 관리자만 가능)
-  // ==========================================
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-[#07070e] text-white flex items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full bg-[#0d0d1a] border border-pink-500/40 p-8 rounded-2xl shadow-[0_0_30px_rgba(255,0,127,0.3)] text-center space-y-5 animate-fade-in">
-          <div className="w-16 h-16 rounded-full bg-pink-950/80 border border-pink-500 flex items-center justify-center mx-auto text-pink-400 shadow-[0_0_15px_rgba(255,0,127,0.5)]">
-            <Shield className="w-8 h-8" />
-          </div>
-
-          <div>
-            <span className="text-[10px] font-mono tracking-widest text-pink-400 uppercase font-bold">
-              RESTRICTED SECURITY ZONE
-            </span>
-            <h2 className="text-xl font-bold text-white mt-1">
-              관리자 전용 콘솔 접근 통제
-            </h2>
-            <p className="text-xs text-neutral-400 mt-2 leading-relaxed">
-              본 시스템은 DASSOBA 관리자 전용 ERP 백오피스입니다.<br />
-              모든 자료 및 Supabase 관리/업로드 기능은 관리자 권한만 가능합니다.
-            </p>
-          </div>
-
-          <div className="pt-2 space-y-2">
-            <button
-              onClick={() => switchUserRole('admin')}
-              className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-mono font-bold text-xs uppercase rounded-lg shadow-[0_0_15px_rgba(255,0,127,0.4)] transition-all"
-            >
-              ⚡ 관리자(ADMIN) 권한으로 전환 &amp; 입장
-            </button>
-
-            <Link
-              to="/login?redirect=/admin"
-              className="block w-full py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-semibold rounded-lg transition-colors"
-            >
-              관리자 계정으로 로그인하기
-            </Link>
-
-            <Link
-              to="/"
-              className="block text-xs font-mono text-neutral-500 hover:text-cyan-400 transition-colors pt-2"
-            >
-              ← 일반 쇼핑몰 홈으로 돌아가기
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Open Access: Anyone can access the Admin ERP Backoffice without restriction
 
   return (
     <div className="min-h-screen bg-neutral-900 text-neutral-100 flex flex-col md:flex-row font-sans">
