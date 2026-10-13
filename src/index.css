@@ -1,5 +1,36 @@
 @import "tailwindcss";
 
+/* Korean Cyberpunk / Futuristic Geometric Tech Web Fonts */
+@font-face {
+  font-family: 'GmarketSansBold';
+  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GmarketSansMedium';
+  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DungGeunMo';
+  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: 'Chakra Petch', 'Rajdhani', 'GmarketSansMedium', 'Do Hyeon', 'IBM Plex Sans KR', sans-serif;
+  --font-serif: 'Orbitron', 'Chakra Petch', 'GmarketSansBold', 'Do Hyeon', 'Black Han Sans', sans-serif;
+  --font-mono: 'Share Tech Mono', 'Orbitron', 'DungGeunMo', 'GmarketSansMedium', monospace;
+}
+
 @layer base {
   :root {
     --brand-burgundy: #ff007f; /* Cyber Hot Pink / Neon Magenta */
@@ -19,10 +50,20 @@
   body {
     background-color: #07070e;
     color: #e2e2ee;
-    font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Noto Sans KR", "Segoe UI", Roboto, sans-serif;
+    font-family: 'Chakra Petch', 'Rajdhani', 'GmarketSansMedium', 'Do Hyeon', 'IBM Plex Sans KR', sans-serif;
+    letter-spacing: 0.015em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+  }
+
+  h1, h2, h3, .cyber-heading {
+    font-family: 'Orbitron', 'Chakra Petch', 'GmarketSansBold', 'Do Hyeon', 'Black Han Sans', sans-serif;
+    letter-spacing: 0.03em;
+  }
+
+  button, input, select, textarea {
+    font-family: 'Chakra Petch', 'Rajdhani', 'GmarketSansMedium', 'IBM Plex Sans KR', sans-serif;
   }
 
   /* Cyberpunk Custom Scrollbar */
@@ -88,12 +129,17 @@
 }
 
 /* Cyberpunk Typography Utilities */
-.font-orbitron {
-  font-family: 'Orbitron', -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", sans-serif;
+.font-orbitron, .font-serif {
+  font-family: 'Orbitron', 'Chakra Petch', 'GmarketSansBold', 'Do Hyeon', 'Black Han Sans', sans-serif !important;
+  letter-spacing: 0.03em;
 }
 
-.font-rajdhani {
-  font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", sans-serif;
+.font-rajdhani, .font-sans {
+  font-family: 'Chakra Petch', 'Rajdhani', 'GmarketSansMedium', 'Do Hyeon', 'IBM Plex Sans KR', sans-serif !important;
+}
+
+.font-mono {
+  font-family: 'Share Tech Mono', 'Orbitron', 'DungGeunMo', 'GmarketSansMedium', monospace !important;
 }
 
 /* 1. Smooth Neon Ambient Lighting (메인 폰트 천천히 스무스한 네온 조명 애니메이션) */
