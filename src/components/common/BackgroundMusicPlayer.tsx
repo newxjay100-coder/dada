@@ -18,6 +18,9 @@ import {
   Move,
   Mic,
   RotateCcw,
+  Minimize2,
+  Maximize2,
+  Minus,
 } from 'lucide-react';
 
 export type ChannelId = 'metal' | 'hiphop' | 'funk' | 'cafe';
@@ -205,8 +208,29 @@ export const BackgroundMusicPlayer: React.FC = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0.4);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMinimized, setIsMinimized] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('dassoba_cd_player_minimized') === 'true';
+  });
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+
+  const toggleMinimize = (val: boolean, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (isDragging || dragInfoRef.current?.hasMoved) return;
+    setIsMinimized(val);
+    if (val) setIsExpanded(false);
+    try {
+      localStorage.setItem('dassoba_cd_player_minimized', String(val));
+    } catch {}
+  };
+
+  const resolveAudioSrc = (src: string) => {
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dada') && src.startsWith('/audio/')) {
+      return `/dada${src}`;
+    }
+    return src;
+  };
 
   // 위치 및 드래그 상태
   const containerRef = useRef<HTMLElement | null>(null);
@@ -349,7 +373,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    audio.src = currentTrack.src;
+    audio.src = resolveAudioSrc(currentTrack.src);
     audio.load();
 
     if (isPlaying) {
@@ -481,224 +505,286 @@ export const BackgroundMusicPlayer: React.FC = () => {
     >
       <audio
         ref={audioRef}
-        src={currentTrack.src}
+        src={resolveAudioSrc(currentTrack.src)}
         preload="metadata"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleTimeUpdate}
         onEnded={() => nextTrack()}
       />
 
-      <div className={`flex items-start gap-2 ${isNearBottom ? 'flex-col-reverse' : 'flex-col'}`}>
-        {/* Main Floating CD Widget Bar */}
+      {isMinimized ? (
+        /* =========================================================
+         * MINIMIZED COMPACT ORB MODE (초소형 미니 CD 아이콘 모드)
+         * ========================================================= */
         <div
           onPointerDown={handlePointerDown}
-          className={`flex items-center gap-2.5 bg-[#0d0d1a]/95 hover:bg-[#111122] text-white backdrop-blur-xl p-2 pr-4 rounded-full border transition-all ${
-            isDragging
-              ? 'border-cyan-400 shadow-[0_0_35px_rgba(0,240,255,0.5)] scale-[1.02]'
-              : 'border-cyan-500/30 hover:border-cyan-400 shadow-[0_0_25px_rgba(0,240,255,0.25)]'
-          }`}
+          className="relative flex items-center gap-1.5 bg-[#0d0d1a]/95 hover:bg-[#141428] text-white backdrop-blur-xl p-1.5 pr-2.5 rounded-full border border-cyan-400/50 shadow-[0_0_22px_rgba(0,240,255,0.4)] transition-all group cursor-pointer"
+          onClick={(e) => toggleMinimize(false, e)}
+          title="클릭하여 뮤직박스 펼치기 (드래그하여 이동 가능)"
         >
-          {/* DRAG HANDLE GRIP (마우스 드래그 손잡이) */}
-          <div
-            onPointerDown={handlePointerDown}
-            className="flex items-center justify-center pl-1 pr-0.5 text-neutral-400 hover:text-cyan-300 cursor-grab active:cursor-grabbing transition-colors group"
-            title="마우스로 드래그하여 플레이어를 화면 원하는 위치로 이동하세요"
-          >
-            <GripVertical className="w-4 h-4 text-cyan-400/70 group-hover:text-cyan-300 transition-transform group-hover:scale-110" />
-          </div>
-
-          {/* REALISTIC HOLOGRAPHIC CD DISC (실물 홀로그램 CD 디스크) */}
+          {/* Mini Rotating Holographic CD */}
           <div
             onClick={togglePlay}
-            className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full cursor-pointer group shrink-0 transition-transform hover:scale-105"
-            title={isPlaying ? '클릭: 음악 일시정지' : '클릭: CD 재생'}
+            className={`relative w-9 h-9 rounded-full overflow-hidden border border-white/50 shrink-0 shadow-md ${
+              isPlaying ? 'animate-cd-spin' : ''
+            }`}
+            style={{
+              background:
+                'conic-gradient(from 120deg at 50% 50%, rgba(255,0,128,0.6) 0deg, rgba(255,240,0,0.5) 90deg, rgba(0,240,255,0.65) 180deg, rgba(160,32,240,0.6) 270deg, rgba(255,0,128,0.6) 360deg)',
+            }}
+            title={isPlaying ? '클릭: 일시정지' : '클릭: 재생'}
           >
-            {/* CD Outer Bevel Glow */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-cyan-500/40 via-purple-500/30 to-pink-500/40 blur-xs" />
+            <div className="absolute inset-0 m-auto w-3.5 h-3.5 rounded-full bg-black/80 border border-cyan-400 flex items-center justify-center">
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isPlaying ? 'bg-[#00f0ff] animate-ping' : 'bg-pink-500'
+                }`}
+              />
+            </div>
+          </div>
 
-            {/* The Rotating CD Body */}
+          {/* Expand / Restore Button */}
+          <button
+            type="button"
+            onClick={(e) => toggleMinimize(false, e)}
+            className="flex items-center gap-1 px-2 py-1 rounded-full bg-cyan-500/20 hover:bg-cyan-400 hover:text-black text-cyan-300 border border-cyan-400/50 text-[10px] font-mono font-bold transition-all"
+            title="뮤직박스 원래 크기로 키우기"
+          >
+            <Maximize2 className="w-3 h-3" />
+            <span>열기</span>
+          </button>
+        </div>
+      ) : (
+        <div className={`flex items-start gap-2 ${isNearBottom ? 'flex-col-reverse' : 'flex-col'}`}>
+          {/* Main Floating CD Widget Bar */}
+          <div
+            onPointerDown={handlePointerDown}
+            className={`flex items-center gap-2 bg-[#0d0d1a]/95 hover:bg-[#111122] text-white backdrop-blur-xl p-2 pr-3 rounded-full border transition-all ${
+              isDragging
+                ? 'border-cyan-400 shadow-[0_0_35px_rgba(0,240,255,0.5)] scale-[1.02]'
+                : 'border-cyan-500/30 hover:border-cyan-400 shadow-[0_0_25px_rgba(0,240,255,0.25)]'
+            }`}
+          >
+            {/* DRAG HANDLE GRIP (마우스 드래그 손잡이) */}
             <div
-              className={`relative w-full h-full rounded-full overflow-hidden border border-white/40 shadow-[0_6px_16px_rgba(0,0,0,0.6)] ${
-                isPlaying ? 'animate-cd-spin' : ''
-              }`}
-              style={{
-                background:
-                  'radial-gradient(circle, #2a2a3e 0%, #151522 55%, #0d0d17 100%)',
-              }}
+              onPointerDown={handlePointerDown}
+              className="flex items-center justify-center pl-1 pr-0.5 text-neutral-400 hover:text-cyan-300 cursor-grab active:cursor-grabbing transition-colors group"
+              title="마우스로 드래그하여 플레이어를 화면 원하는 위치로 이동하세요"
             >
-              {/* Conic Rainbow Holographic Refraction (무지갯빛 스펙트럼 굴절 광택) */}
+              <GripVertical className="w-4 h-4 text-cyan-400/70 group-hover:text-cyan-300 transition-transform group-hover:scale-110" />
+            </div>
+
+            {/* REALISTIC HOLOGRAPHIC CD DISC (실물 홀로그램 CD 디스크) */}
+            <div
+              onClick={togglePlay}
+              className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full cursor-pointer group shrink-0 transition-transform hover:scale-105"
+              title={isPlaying ? '클릭: 음악 일시정지' : '클릭: CD 재생'}
+            >
+              {/* CD Outer Bevel Glow */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-cyan-500/40 via-purple-500/30 to-pink-500/40 blur-xs" />
+
+              {/* The Rotating CD Body */}
               <div
-                className="absolute inset-0 rounded-full opacity-65 pointer-events-none"
+                className={`relative w-full h-full rounded-full overflow-hidden border border-white/40 shadow-[0_6px_16px_rgba(0,0,0,0.6)] ${
+                  isPlaying ? 'animate-cd-spin' : ''
+                }`}
                 style={{
                   background:
-                    'conic-gradient(from 120deg at 50% 50%, rgba(255,0,128,0.5) 0deg, rgba(255,140,0,0.4) 45deg, rgba(255,240,0,0.4) 90deg, rgba(0,240,255,0.55) 150deg, rgba(0,128,255,0.45) 200deg, rgba(160,32,240,0.5) 260deg, rgba(255,0,128,0.5) 360deg)',
+                    'radial-gradient(circle, #2a2a3e 0%, #151522 55%, #0d0d17 100%)',
                 }}
-              />
+              >
+                {/* Conic Rainbow Holographic Refraction (무지갯빛 스펙트럼 굴절 광택) */}
+                <div
+                  className="absolute inset-0 rounded-full opacity-65 pointer-events-none"
+                  style={{
+                    background:
+                      'conic-gradient(from 120deg at 50% 50%, rgba(255,0,128,0.5) 0deg, rgba(255,140,0,0.4) 45deg, rgba(255,240,0,0.4) 90deg, rgba(0,240,255,0.55) 150deg, rgba(0,128,255,0.45) 200deg, rgba(160,32,240,0.5) 260deg, rgba(255,0,128,0.5) 360deg)',
+                  }}
+                />
 
-              {/* Data Track Micro-Grooves (CD 데이터 트랙 홈) */}
-              <div
-                className="absolute inset-[6px] rounded-full border border-white/20 pointer-events-none"
-                style={{
-                  boxShadow:
-                    'inset 0 0 0 3px rgba(255,255,255,0.06), inset 0 0 0 7px rgba(0,0,0,0.4), inset 0 0 0 10px rgba(0,240,255,0.1)',
-                }}
-              />
+                {/* Data Track Micro-Grooves (CD 데이터 트랙 홈) */}
+                <div
+                  className="absolute inset-[6px] rounded-full border border-white/20 pointer-events-none"
+                  style={{
+                    boxShadow:
+                      'inset 0 0 0 3px rgba(255,255,255,0.06), inset 0 0 0 7px rgba(0,0,0,0.4), inset 0 0 0 10px rgba(0,240,255,0.1)',
+                  }}
+                />
 
-              {/* CD Label Text (원형 라벨 텍스트) */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="text-[6.5px] font-mono tracking-widest uppercase text-cyan-200/80 font-black opacity-80">
-                  DASSOBA•2077
-                </span>
-              </div>
+                {/* CD Label Text (원형 라벨 텍스트) */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-[6px] font-mono tracking-widest uppercase text-cyan-200/80 font-black opacity-80">
+                    DASSOBA•2077
+                  </span>
+                </div>
 
-              {/* Clear Polycarbonate Hub (투명 센터 플라스틱 링) */}
-              <div className="absolute inset-0 m-auto w-6 h-6 rounded-full border-2 border-white/40 bg-black/60 backdrop-blur-xs flex items-center justify-center shadow-inner">
-                {/* Spindle Clamp Hole (스핀들 구멍) */}
-                <div className="w-2.5 h-2.5 rounded-full bg-neutral-950 border border-cyan-400 flex items-center justify-center">
-                  <span
-                    className={`w-1 h-1 rounded-full ${
-                      isPlaying ? 'bg-[#00f0ff] animate-ping' : 'bg-pink-500'
-                    }`}
-                  />
+                {/* Clear Polycarbonate Hub (투명 센터 플라스틱 링) */}
+                <div className="absolute inset-0 m-auto w-5 h-5 rounded-full border-2 border-white/40 bg-black/60 backdrop-blur-xs flex items-center justify-center shadow-inner">
+                  {/* Spindle Clamp Hole (스핀들 구멍) */}
+                  <div className="w-2 h-2 rounded-full bg-neutral-950 border border-cyan-400 flex items-center justify-center">
+                    <span
+                      className={`w-1 h-1 rounded-full ${
+                        isPlaying ? 'bg-[#00f0ff] animate-ping' : 'bg-pink-500'
+                      }`}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Play/Pause Hover Overlay Icon */}
-            <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-              {isPlaying ? (
-                <Pause className="w-4 h-4 text-cyan-300 fill-cyan-300" />
-              ) : (
-                <Play className="w-4 h-4 text-cyan-300 fill-cyan-300 ml-0.5" />
-              )}
-            </div>
-          </div>
-
-          {/* Track Info (Clickable to Expand Cyber Deck) */}
-          <div
-            onClick={(e) => {
-              if (isDragging || dragInfoRef.current?.hasMoved) return;
-              setIsExpanded(!isExpanded);
-            }}
-            className="flex flex-col min-w-[130px] sm:min-w-[160px] max-w-[190px] cursor-pointer"
-          >
-            <div className="flex items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 text-[9px] font-mono font-black uppercase text-cyan-300 bg-cyan-950/80 border border-cyan-400/40 px-1.5 py-0.2 rounded">
-                {activeChannel === 'metal' ? (
-                  <>
-                    <Flame className="w-2.5 h-2.5 text-red-500 animate-pulse" />
-                    HARD ROCK & METAL
-                  </>
-                ) : activeChannel === 'hiphop' ? (
-                  <>
-                    <Mic className="w-2.5 h-2.5 text-pink-400" />
-                    HIP-HOP & RAP
-                  </>
-                ) : activeChannel === 'funk' ? (
-                  <>
-                    <Zap className="w-2.5 h-2.5 text-yellow-300" />
-                    CYBER FUNK
-                  </>
+              {/* Play/Pause Hover Overlay Icon */}
+              <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                {isPlaying ? (
+                  <Pause className="w-4 h-4 text-cyan-300 fill-cyan-300" />
                 ) : (
-                  <>
-                    <Coffee className="w-2.5 h-2.5 text-amber-300" />
-                    COZY CAFE
-                  </>
+                  <Play className="w-4 h-4 text-cyan-300 fill-cyan-300 ml-0.5" />
                 )}
-              </span>
-              <span className="text-white/30 text-[9px]">•</span>
-              <span className="text-[10px] text-cyan-400 font-mono">
-                {trackIndex + 1}/{currentChannelTracks.length}
-              </span>
-              {isPlaying && (
-                <div className="flex items-end gap-[1.5px] h-2.5 ml-auto">
-                  <span className="w-[2px] bg-cyan-400 rounded-full animate-[pulse_0.4s_ease-in-out_infinite] h-full" />
-                  <span className="w-[2px] bg-pink-500 rounded-full animate-[pulse_0.6s_ease-in-out_infinite] h-2/3" />
-                  <span className="w-[2px] bg-yellow-400 rounded-full animate-[pulse_0.5s_ease-in-out_infinite] h-4/5" />
-                </div>
-              )}
+              </div>
             </div>
 
-            <div className="text-xs font-bold text-white truncate leading-tight mt-1 group-hover:text-cyan-300 transition-colors">
-              {currentTrack.koreanTitle}
-            </div>
-            <div className="text-[10px] text-neutral-400 truncate font-mono">
-              {currentTrack.artist} {currentTrack.bpm ? `• ${currentTrack.bpm} BPM` : ''}
-            </div>
-          </div>
-
-          {/* Control Buttons */}
-          <div className="flex items-center gap-1 shrink-0 text-neutral-300">
-            <button
-              onClick={prevTrack}
-              className="p-1 hover:text-cyan-300 transition-colors"
-              title="이전 곡"
-            >
-              <SkipBack className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={togglePlay}
-              className="p-1.5 rounded-full bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-300 transition-colors border border-cyan-500/40"
-              title={isPlaying ? '일시정지' : '재생'}
-            >
-              {isPlaying ? (
-                <Pause className="w-3.5 h-3.5 fill-cyan-300" />
-              ) : (
-                <Play className="w-3.5 h-3.5 fill-cyan-300 ml-0.5" />
-              )}
-            </button>
-            <button
-              onClick={nextTrack}
-              className="p-1 hover:text-cyan-300 transition-colors"
-              title="다음 곡"
-            >
-              <SkipForward className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={toggleMute}
-              className="p-1 hover:text-pink-400 transition-colors"
-              title={isMuted ? '음소거 해제' : '음소거'}
-            >
-              {isMuted ? (
-                <VolumeX className="w-3.5 h-3.5 text-pink-500" />
-              ) : (
-                <Volume2 className="w-3.5 h-3.5 text-cyan-300" />
-              )}
-            </button>
-            <button
+            {/* Track Info (Clickable to Expand Cyber Deck) */}
+            <div
               onClick={(e) => {
-                e.stopPropagation();
-                if (isDragging) return;
+                if (isDragging || dragInfoRef.current?.hasMoved) return;
                 setIsExpanded(!isExpanded);
               }}
-              className="p-1 hover:text-cyan-300 transition-colors text-neutral-400"
-              title={isExpanded ? '플레이어 접기' : '플레이어 펼치기'}
+              className="flex flex-col min-w-[115px] sm:min-w-[150px] max-w-[175px] cursor-pointer"
             >
-              {isExpanded ? (
-                isNearBottom ? <ChevronDown className="w-3.5 h-3.5 text-cyan-400" /> : <ChevronUp className="w-3.5 h-3.5 text-cyan-400" />
-              ) : (
-                isNearBottom ? <ChevronUp className="w-3.5 h-3.5 text-cyan-400" /> : <ChevronDown className="w-3.5 h-3.5 text-cyan-400" />
-              )}
-            </button>
-          </div>
-        </div>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 text-[9px] font-mono font-black uppercase text-cyan-300 bg-cyan-950/80 border border-cyan-400/40 px-1.5 py-0.2 rounded">
+                  {activeChannel === 'metal' ? (
+                    <>
+                      <Flame className="w-2.5 h-2.5 text-red-500 animate-pulse" />
+                      METAL
+                    </>
+                  ) : activeChannel === 'hiphop' ? (
+                    <>
+                      <Mic className="w-2.5 h-2.5 text-pink-400" />
+                      HIP-HOP
+                    </>
+                  ) : activeChannel === 'funk' ? (
+                    <>
+                      <Zap className="w-2.5 h-2.5 text-yellow-300" />
+                      FUNK
+                    </>
+                  ) : (
+                    <>
+                      <Coffee className="w-2.5 h-2.5 text-amber-300" />
+                      CAFE
+                    </>
+                  )}
+                </span>
+                <span className="text-[10px] text-cyan-400 font-mono">
+                  {trackIndex + 1}/{currentChannelTracks.length}
+                </span>
+                {isPlaying && (
+                  <div className="flex items-end gap-[1.5px] h-2.5 ml-auto">
+                    <span className="w-[2px] bg-cyan-400 rounded-full animate-[pulse_0.4s_ease-in-out_infinite] h-full" />
+                    <span className="w-[2px] bg-pink-500 rounded-full animate-[pulse_0.6s_ease-in-out_infinite] h-2/3" />
+                    <span className="w-[2px] bg-yellow-400 rounded-full animate-[pulse_0.5s_ease-in-out_infinite] h-4/5" />
+                  </div>
+                )}
+              </div>
 
-        {/* EXPANDABLE CYBER DECK / JEWEL CASE (사이버펑크 플레이리스트 & 덱) */}
-        {isExpanded && (
-          <div className="w-[320px] sm:w-[380px] bg-[#090914]/95 text-white backdrop-blur-2xl rounded-2xl border border-cyan-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(0,240,255,0.2)] p-4 space-y-3 animate-fade-in">
-            {/* Header: Draggable hint and Reset position */}
-            <div className="flex items-center justify-between text-[10px] font-mono text-neutral-400 border-b border-white/10 pb-2">
-              <span className="flex items-center gap-1 text-cyan-400">
-                <Move className="w-3 h-3" /> 마우스로 어디든 드래그 가능
-              </span>
+              <div className="text-xs font-bold text-white truncate leading-tight mt-1 group-hover:text-cyan-300 transition-colors">
+                {currentTrack.koreanTitle}
+              </div>
+              <div className="text-[10px] text-neutral-400 truncate font-mono">
+                {currentTrack.artist} {currentTrack.bpm ? `• ${currentTrack.bpm} BPM` : ''}
+              </div>
+            </div>
+
+            {/* Control Buttons + Minimize Button */}
+            <div className="flex items-center gap-0.5 sm:gap-1 shrink-0 text-neutral-300">
               <button
-                onClick={resetPosition}
-                className="flex items-center gap-1 text-neutral-400 hover:text-pink-400 transition-colors px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10"
-                title="플레이어를 좌측 하단 기본 위치로 이동"
+                onClick={prevTrack}
+                className="p-1 hover:text-cyan-300 transition-colors"
+                title="이전 곡"
               >
-                <RotateCcw className="w-2.5 h-2.5" /> 위치 초기화
+                <SkipBack className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={togglePlay}
+                className="p-1.5 rounded-full bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-300 transition-colors border border-cyan-500/40"
+                title={isPlaying ? '일시정지' : '재생'}
+              >
+                {isPlaying ? (
+                  <Pause className="w-3.5 h-3.5 fill-cyan-300" />
+                ) : (
+                  <Play className="w-3.5 h-3.5 fill-cyan-300 ml-0.5" />
+                )}
+              </button>
+              <button
+                onClick={nextTrack}
+                className="p-1 hover:text-cyan-300 transition-colors"
+                title="다음 곡"
+              >
+                <SkipForward className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={toggleMute}
+                className="p-1 hover:text-pink-400 transition-colors"
+                title={isMuted ? '음소거 해제' : '음소거'}
+              >
+                {isMuted ? (
+                  <VolumeX className="w-3.5 h-3.5 text-pink-500" />
+                ) : (
+                  <Volume2 className="w-3.5 h-3.5 text-cyan-300" />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isDragging) return;
+                  setIsExpanded(!isExpanded);
+                }}
+                className="p-1 hover:text-cyan-300 transition-colors text-neutral-400"
+                title={isExpanded ? '플레이리스트 접기' : '플레이리스트 펼치기'}
+              >
+                {isExpanded ? (
+                  isNearBottom ? <ChevronDown className="w-3.5 h-3.5 text-cyan-400" /> : <ChevronUp className="w-3.5 h-3.5 text-cyan-400" />
+                ) : (
+                  isNearBottom ? <ChevronUp className="w-3.5 h-3.5 text-cyan-400" /> : <ChevronDown className="w-3.5 h-3.5 text-cyan-400" />
+                )}
+              </button>
+
+              {/* MINIMIZE BUTTON (뮤직박스 작아지는 버튼) */}
+              <button
+                type="button"
+                onClick={(e) => toggleMinimize(true, e)}
+                className="ml-0.5 px-2 py-1 rounded-full bg-pink-500/20 hover:bg-pink-500 hover:text-white text-pink-300 border border-pink-500/50 transition-all flex items-center gap-0.5 text-[10px] font-mono font-bold shadow-[0_0_8px_rgba(255,0,127,0.3)]"
+                title="뮤직박스 작게 축소하기 (미니 CD 모드)"
+              >
+                <Minimize2 className="w-3 h-3" />
+                <span className="hidden sm:inline">축소</span>
               </button>
             </div>
+          </div>
+
+          {/* EXPANDABLE CYBER DECK / JEWEL CASE (사이버펑크 플레이리스트 & 덱) */}
+          {isExpanded && (
+            <div className="w-[320px] sm:w-[380px] bg-[#090914]/95 text-white backdrop-blur-2xl rounded-2xl border border-cyan-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(0,240,255,0.2)] p-4 space-y-3 animate-fade-in">
+              {/* Header: Draggable hint, Reset position, and Minimize */}
+              <div className="flex items-center justify-between text-[10px] font-mono text-neutral-400 border-b border-white/10 pb-2">
+                <span className="flex items-center gap-1 text-cyan-400">
+                  <Move className="w-3 h-3" /> 마우스로 어디든 드래그 가능
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={resetPosition}
+                    className="flex items-center gap-1 text-neutral-400 hover:text-cyan-300 transition-colors px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10"
+                    title="플레이어를 좌측 하단 기본 위치로 이동"
+                  >
+                    <RotateCcw className="w-2.5 h-2.5" /> 위치 초기화
+                  </button>
+                  <button
+                    onClick={(e) => toggleMinimize(true, e)}
+                    className="flex items-center gap-1 text-pink-300 hover:text-white transition-colors px-2 py-0.5 rounded bg-pink-500/20 hover:bg-pink-500 border border-pink-500/40 font-bold"
+                    title="미니 아이콘으로 축소"
+                  >
+                    <Minimize2 className="w-2.5 h-2.5" /> 미니모드
+                  </button>
+                </div>
+              </div>
 
             {/* 4-Channel Switcher Tabs (4개 장르 채널 탭) */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 bg-black/60 rounded-xl border border-white/10">
@@ -829,6 +915,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
           </div>
         )}
       </div>
+      )}
     </aside>
   );
 };
