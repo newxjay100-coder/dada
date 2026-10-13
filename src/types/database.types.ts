@@ -170,7 +170,9 @@ export interface Order {
   coupon_discount: number;
   points_used: number;
   final_payment_amount: number;
-  payment_method: 'credit_card' | 'easy_pay' | 'transfer' | 'vbank';
+  payment_method: 'tosspay' | 'credit_card' | 'easy_pay' | 'transfer' | 'vbank' | 'mobile';
+  payment_key?: string;
+  payment_provider?: string;
   order_status: OrderStatus;
   payment_status: 'completed' | 'pending' | 'cancelled' | 'refunded';
   items?: OrderItem[];

@@ -187,6 +187,12 @@ export const MockOrderStore = {
     }
     return order;
   },
+  delete: (orderId: string): void => {
+    const list = MockOrderStore.getAll().filter(
+      (o) => o.id !== orderId && o.order_number !== orderId
+    );
+    setStorage(STORAGE_KEYS.ORDERS, list);
+  },
 };
 
 // Reviews API

@@ -361,36 +361,80 @@ export const api = {
   // 4. ORDERS (주문 & 배송 관리)
   // ==========================================
   async getOrders(userId?: string): Promise<Order[]> {
+    const localOrders = userId ? MockOrderStore.getByUserId(userId) : MockOrderStore.getAll();
+
     if (isSupabaseReady()) {
       try {
         let query = supabase.from('orders').select('*, items:order_items(*)');
         if (userId) query = query.eq('user_id', userId);
         const { data, error } = await query.order('created_at', { ascending: false });
         if (!error && data && data.length > 0) return data as Order[];
+      } catch {
+        // Fallback to cloud bridge
+      }
+
+      try {
+        const { data: cloudRows } = await supabase
+          .from('notices')
+          .select('*')
+          .like('id', 'order_cloud_%')
+          .order('created_at', { ascending: false });
+
+        if (cloudRows && cloudRows.length > 0) {
+          const map = new Map<string, Order>();
+          localOrders.forEach((o) => map.set(o.id, o));
+          for (const row of cloudRows) {
+            try {
+              const parsed = JSON.parse(row.content) as Order;
+              if (parsed && parsed.id) {
+                if (!userId || parsed.user_id === userId) {
+                  map.set(parsed.id, parsed);
+                }
+                MockOrderStore.save(parsed);
+              }
+            } catch {
+              // ignore invalid JSON
+            }
+          }
+          return Array.from(map.values());
+        }
       } catch (e) {
-        console.warn('Supabase getOrders failed:', e);
+        console.warn('Supabase getOrders cloud bridge warning:', e);
       }
     }
-    return userId ? MockOrderStore.getByUserId(userId) : MockOrderStore.getAll();
+    return localOrders;
   },
 
   async createOrder(order: Order): Promise<Order> {
-    MockOrderStore.create(order);
+    MockOrderStore.save(order);
 
     if (isSupabaseReady()) {
       try {
         const { items, ...orderData } = order;
-        const { data, error } = await supabase.from('orders').insert(orderData).select().single();
+        const { data, error } = await supabase.from('orders').upsert(orderData).select().single();
         if (!error && data && items && items.length > 0) {
-          await supabase.from('order_items').insert(
+          await supabase.from('order_items').upsert(
             items.map((it) => ({
               ...it,
               order_id: data.id,
             }))
           );
         }
+      } catch {
+        // ignore if orders table is not yet created
+      }
+
+      try {
+        await supabase.from('notices').upsert({
+          id: `order_cloud_${order.id}`,
+          title: `[ORDER] ${order.order_number} - ${order.order_name}`,
+          content: JSON.stringify(order),
+          is_pinned: false,
+          view_count: order.final_payment_amount || 0,
+          created_at: order.created_at || new Date().toISOString(),
+        });
       } catch (e) {
-        console.warn('Supabase createOrder failed:', e);
+        console.warn('Supabase createOrder cloud sync warning:', e);
       }
     }
     return order;
@@ -405,11 +449,42 @@ export const api = {
           .from('orders')
           .update({ order_status: status })
           .eq('id', orderId);
-      } catch (e) {
-        console.warn('Supabase updateOrderStatus failed:', e);
+      } catch {
+        // ignore
+      }
+      if (updated) {
+        try {
+          await supabase.from('notices').upsert({
+            id: `order_cloud_${updated.id}`,
+            title: `[ORDER] ${updated.order_number} - ${updated.order_name}`,
+            content: JSON.stringify(updated),
+            is_pinned: false,
+            view_count: updated.final_payment_amount || 0,
+            created_at: updated.created_at || new Date().toISOString(),
+          });
+        } catch {
+          // ignore
+        }
       }
     }
     return updated;
+  },
+
+  async deleteOrder(orderId: string): Promise<boolean> {
+    MockOrderStore.delete(orderId);
+    if (isSupabaseReady()) {
+      try {
+        await supabase.from('orders').delete().eq('id', orderId);
+      } catch {
+        // ignore
+      }
+      try {
+        await supabase.from('notices').delete().eq('id', `order_cloud_${orderId}`);
+      } catch {
+        // ignore
+      }
+    }
+    return true;
   },
 
   // ==========================================
