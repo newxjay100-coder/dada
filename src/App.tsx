@@ -102,8 +102,11 @@ const StoreLayout: React.FC = () => {
 };
 
 export function App() {
+  const basename =
+    typeof window !== 'undefined' && window.location.pathname.startsWith('/dada') ? '/dada' : '/';
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <ToastProvider>
         <AuthProvider>
           <CartProvider>

@@ -176,10 +176,11 @@ export class TossPaymentAdapter implements PaymentAdapter {
     const tossMethod = mapToTossMethod(request.paymentMethod, request.easyPayProvider);
 
     const origin = window.location.origin;
-    const successUrl = `${origin}/order-success/${encodeURIComponent(
+    const basePrefix = window.location.pathname.startsWith('/dada') ? '/dada' : '';
+    const successUrl = `${origin}${basePrefix}/order-success/${encodeURIComponent(
       request.orderNumber
     )}?provider=toss&method=${encodeURIComponent(request.paymentMethod)}`;
-    const failUrl = `${origin}/checkout?toss_fail=true`;
+    const failUrl = `${origin}${basePrefix}/checkout?toss_fail=true`;
 
     try {
       await tossPayments.requestPayment(tossMethod, {
